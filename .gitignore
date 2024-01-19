@@ -1,3 +1,9 @@
 __pycache__
 *.pyc
 work_dirs
+/data
+ckpts/
+build/
+mmdet3d.egg-info/
+mmdet3d/.mim/
+mmdet3d/ops/bev_pool_v2/
