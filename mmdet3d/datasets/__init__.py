@@ -4,6 +4,7 @@ from .builder import DATASETS, PIPELINES, build_dataset
 from .custom_3d import Custom3DDataset
 from .nuscenes_dataset import NuScenesDataset
 from .nuscenes_dataset_occ import NuScenesDatasetOccpancy
+from .nuscenes_dataset_3dgs import NuScenesDataset3DGS
 # yapf: disable
 from .pipelines import (AffineResize, BackgroundPointsFilter, GlobalAlignment,
                         GlobalRotScaleTrans, IndoorPatchPointSample,
@@ -33,5 +34,5 @@ __all__ = [
     'RandomJitterPoints', 'ObjectNameFilter', 'AffineResize',
     'RandomShiftScale', 'LoadPointsFromDict', 'PIPELINES',
     'RangeLimitedRandomCrop', 'RandomRotate', 'MultiViewWrapper',
-    'NuScenesDatasetOccpancy'
+    'NuScenesDatasetOccpancy', 'NuScenesDataset3DGS'
 ]

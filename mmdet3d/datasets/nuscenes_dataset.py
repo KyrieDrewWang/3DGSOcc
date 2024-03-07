@@ -234,10 +234,10 @@ class NuScenesDataset(Custom3DDataset):
         info = self.data_infos[index]
         # standard protocol modified from SECOND.Pytorch
         input_dict = dict(
-            sample_idx=info['token'],
-            pts_filename=info['lidar_path'],
-            sweeps=info['sweeps'],
-            timestamp=info['timestamp'] / 1e6,
+            sample_idx=info['token'],  # 样本数据标记
+            pts_filename=info['lidar_path'],  # 激光雷达点云数据的文件名
+            sweeps=info['sweeps'],  # 扫描信息（没有标注的中间帧）
+            timestamp=info['timestamp'] / 1e6,  # 样本数据时间戳
             scene_name=info['scene_name'],
             frame_idx=info['frame_idx'],
         )

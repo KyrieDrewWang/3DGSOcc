@@ -10,6 +10,12 @@ model = dict(
         scene_center=[0, 0, 2.2],
         radius=39,
         use_depth_sup=True,
+    ),
+    gauss_head=dict(
+        type='GausSplatingHead',
+        point_cloud_range= [-40,-40,-1, 40,40,5.4],
+        voxel_size=0.4,
+        voxel_feature_dim=32
     )
 )
 
@@ -21,10 +27,11 @@ depth_gt_path = './data/nuscenes/depth_gt'
 semantic_gt_path = './data/nuscenes/seg_gt_lidarseg'
 
 data = dict(
-    samples_per_gpu=2,  # with 8 GPU, Batch Size=16 
-    workers_per_gpu=2,
+    samples_per_gpu=1,  # with 8 GPU, Batch Size=16 
+    workers_per_gpu=1,
     train=dict(
         use_rays=True,
+        use_camera=True,
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
         aux_frames=[-3,-2,-1,1,2,3],

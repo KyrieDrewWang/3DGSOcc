@@ -21,7 +21,7 @@ def single_gpu_test(model, data_loader, dump=False):
     for data in data_loader:
         # import ipdb;ipdb.set_trace()
         with torch.no_grad():
-            result = model.module(return_loss=False, rescale=True, **data)
+            result = model(return_loss=False, rescale=True, **data)
         results.extend(result)
 
         if dump:

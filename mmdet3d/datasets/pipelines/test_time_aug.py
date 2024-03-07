@@ -148,8 +148,7 @@ class MultiScaleFlipAug3D(object):
                  pcd_horizontal_flip=False,
                  pcd_vertical_flip=False):
         self.transforms = Compose(transforms)
-        self.img_scale = img_scale if isinstance(img_scale,
-                                                 list) else [img_scale]
+        self.img_scale = img_scale if isinstance(img_scale, list) else [img_scale]
         self.pts_scale_ratio = pts_scale_ratio \
             if isinstance(pts_scale_ratio, list) else [float(pts_scale_ratio)]
 

@@ -6,9 +6,9 @@ NNODES=${NNODES:-1}
 NODE_RANK=${NODE_RANK:-0}
 PORT=$((RANDOM + 10000))
 MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
-
+# python tools/train.py configs/renderocc/renderocc-7frame.py --gpu-id 8
 PYTHONPATH="$(dirname $0)/..":$PYTHONPATH \
-python -m torch.distributed.launch \
+CUDA_VISIBLE_DEVICES=8 python -m torch.distributed.launch \
     --nnodes=$NNODES \
     --node_rank=$NODE_RANK \
     --master_addr=$MASTER_ADDR \

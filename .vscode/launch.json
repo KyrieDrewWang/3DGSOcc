@@ -1,0 +1,34 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: test.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "tools/test.py", 
+                "configs/renderocc/renderocc-7frame.py", 
+                "ckpts/renderocc-7frame-12e.pth", 
+                "--gpu-id", 
+                "7", 
+                "--dump_dir", 
+                "results",
+            ]
+        },
+        {
+            "name": "Python Debugger: train.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "tools/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "configs/renderocc/renderocc-7frame.py", 
+            ]
+        }
+    ]
+}

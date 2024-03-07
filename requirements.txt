@@ -1,6 +1,6 @@
 open3d
 spconv
-waymo-open-dataset-tf-2-5-0
+# waymo-open-dataset-tf-2-5-0
 lyft_dataset_sdk
 networkx==2.2
 numba==0.53.0

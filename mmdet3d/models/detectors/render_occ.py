@@ -28,6 +28,7 @@ class RenderOcc(BEVStereo4DOCC):
                  use_3d_loss=False,
                  balance_cls_weight=True,
                  final_softplus=False,
+                 gauss_head=None,
                  **kwargs):
         super(RenderOcc, self).__init__(use_predicter=False, **kwargs)
         self.out_dim = out_dim
@@ -75,7 +76,7 @@ class RenderOcc(BEVStereo4DOCC):
         )
 
         self.nerf_head = builder.build_head(nerf_head)
-      
+        self.gaussplating_head = builder.build_head(gauss_head)
 
     def loss_3d(self,voxel_semantics,mask_camera,density_prob, semantic):
         voxel_semantics=voxel_semantics.long()
@@ -153,6 +154,9 @@ class RenderOcc(BEVStereo4DOCC):
         if self.nerf_head:          # 2D rendering loss
             loss_rendering = self.nerf_head(density, semantic, rays=kwargs['rays'], bda=bda)
             losses.update(loss_rendering)
+        if self.gaussplating_head:
+            loss_gaussian = self.gaussplating_head(voxel_feats, kwargs['camera_info'], density)
+            losses.update(loss_gaussian)
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)
             loss_depth = self.img_view_transformer.get_depth_loss(kwargs['gt_depth'], depth)
             losses['loss_lss_depth'] = loss_depth

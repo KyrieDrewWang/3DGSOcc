@@ -113,7 +113,7 @@ model = dict(
 )
 
 # Data
-dataset_type = 'NuScenesDatasetOccpancy'
+dataset_type = 'NuScenesDataset3DGS'
 data_root = 'data/nuscenes/'
 file_client_args = dict(backend='disk')
 
@@ -151,7 +151,7 @@ train_pipeline = [
     dict(
         type='Collect3D', keys=['img_inputs', 'gt_depth', 'voxel_semantics',
                                 'mask_lidar','mask_camera',
-                                'gt_depths', 'rays'
+                                'gt_depths', 'rays', 'camera_info'
                                ])
 ]
 
@@ -213,7 +213,7 @@ test_data_config = dict(
 
 data = dict(
     samples_per_gpu=1,  # with 32 GPU, Batch Size=32 
-    workers_per_gpu=2,
+    workers_per_gpu=1,
     train=dict(
         data_root=data_root,
         ann_file=data_root + 'bevdetv2-nuscenes_infos_train.pkl',
@@ -247,11 +247,11 @@ custom_hooks = [
         init_updates=10560,
         priority='NORMAL',
     ),
-    dict(
-        type='SyncbnControlHook',
-        syncbn_start_epoch=0,
-    ),
+    # dict(
+    #     type='SyncbnControlHook',
+    #     syncbn_start_epoch=0,
+    # ),
 ]
 
-load_from="/ckpts/bevdet-stbase-4d-stereo-512x1408-cbgs.pth"
+load_from="ckpts/bevdet-stbase-4d-stereo-512x1408-cbgs.pth"
 # fp16 = dict(loss_scale='dynamic')

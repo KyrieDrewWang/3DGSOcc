@@ -2,6 +2,8 @@
 import argparse
 import os
 import warnings
+import faulthandler
+faulthandler.enable()
 from tqdm import tqdm
 from collections import OrderedDict
 import mmcv
@@ -13,14 +15,12 @@ from mmcv.runner import (get_dist_info, init_dist, load_checkpoint,
                          wrap_fp16_model)
 
 import mmdet
-from mmdet3d.apis import single_gpu_test, multi_gpu_test
-
-
-from mmdet3d.datasets import build_dataloader, build_dataset
-from mmdet3d.models import build_model
-
 from mmdet.datasets import replace_ImageToTensor
 from mmdet.apis import set_random_seed
+
+from mmdet3d.apis import single_gpu_test, multi_gpu_test
+from mmdet3d.datasets import build_dataloader, build_dataset
+from mmdet3d.models import build_model
 from mmdet3d.utils import patch_config
 
 if mmdet.__version__ > '2.23.0':
@@ -29,7 +29,6 @@ if mmdet.__version__ > '2.23.0':
     from mmdet.utils import setup_multi_processes
 else:
     from mmdet3d.utils import setup_multi_processes
-
 try:
     # If mmdet version > 2.23.0, compat_cfg would be imported and
     # used from mmdet instead of mmdet3d.
@@ -173,7 +172,7 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     test_dataloader_default_args = dict(
-        samples_per_gpu=1, workers_per_gpu=2, dist=distributed, shuffle=False)
+        samples_per_gpu=1, workers_per_gpu=1, dist=distributed, shuffle=False)
 
     # in case the test dataset is concatenated
     if isinstance(cfg.data.test, dict):

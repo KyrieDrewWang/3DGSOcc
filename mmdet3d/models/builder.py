@@ -93,7 +93,7 @@ def build_detector(cfg, train_cfg=None, test_cfg=None):
             cfg, default_args=dict(train_cfg=train_cfg, test_cfg=test_cfg))
     else:
         return MMDET_DETECTORS.build(
-            cfg, default_args=dict(train_cfg=train_cfg, test_cfg=test_cfg))
+            cfg, default_args=dict(train_cfg=train_cfg, test_cfg=test_cfg)) #
 
 
 def build_segmentor(cfg, train_cfg=None, test_cfg=None):

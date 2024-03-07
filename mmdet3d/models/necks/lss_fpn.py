@@ -40,6 +40,7 @@ class FPN_LSS(nn.Module):
         ) if use_input_conv else None
         if use_input_conv:
             in_channels = out_channels * channels_factor
+        print("---------norm cfg:",str(norm_cfg))
         self.conv = nn.Sequential(
             nn.Conv2d(
                 in_channels,
