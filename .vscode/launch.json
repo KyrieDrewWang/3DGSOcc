@@ -13,7 +13,7 @@
             "console": "integratedTerminal",
             "args": [
                 "tools/test.py", 
-                "configs/renderocc/renderocc-7frame.py", 
+                "configs/renderocc/splattingocc-Nframe.py", 
                 "ckpts/renderocc-7frame-12e.pth", 
                 "--gpu-id", 
                 "7", 
@@ -29,7 +29,7 @@
             "justMyCode": false,
             "console": "integratedTerminal",
             "args": [
-                "configs/renderocc/renderocc-7frame.py", 
+                "configs/renderocc/splattingocc-Nframe.py", 
                 "--work_dir",
                 "DEBUG"
             ]
