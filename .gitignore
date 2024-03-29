@@ -12,3 +12,4 @@ mmdet3d/ops/bev_pool_v2/
 results/
 mmdet3d/models/gaussplating/submodules/
 DEBUG/
+splattingocc_workdir/
