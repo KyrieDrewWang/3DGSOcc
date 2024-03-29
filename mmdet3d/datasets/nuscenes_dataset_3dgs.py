@@ -12,6 +12,7 @@ from .builder import DATASETS
 from .nuscenes_dataset import NuScenesDataset
 from .occ_metrics import Metric_mIoU, Metric_FScore
 from .ray import generate_rays
+from torchvision.transforms import functional as F
 
 nusc_class_nums = torch.Tensor([
     2854504, 7291443, 141614, 4239939, 32248552, 
@@ -77,6 +78,9 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 aux_frames=[-1,1],
                 max_ray_nums=0,
                 wrs_use_batch=False,
+                znear=0.01, 
+                zfar=40,
+                sem_mask_size=None,
                 **kwargs):
         super().__init__(**kwargs)
         self.use_rays = use_rays
@@ -85,7 +89,9 @@ class NuScenesDataset3DGS(NuScenesDataset):
         self.depth_gt_path = depth_gt_path
         self.aux_frames = aux_frames
         self.max_ray_nums = max_ray_nums
-
+        self.znear=znear
+        self.zfar = zfar
+        self.sem_mask_size = sem_mask_size
         if wrs_use_batch:   # compute with batch data
             self.WRS_balance_weight = None
         else:               # compute with total dataset
@@ -211,18 +217,15 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 image_heights.append(image_height)
                 image_widths.append(image_width)
                 
-                R = c2w[:3, :3]
-                T = c2w[:3, 3]
-                
                 focal_length_x, focal_length_y = intrin[0][0], intrin[1][1]
                 FoVy = self.focal2fov(focal_length_y, image_height)
                 FoVx = self.focal2fov(focal_length_x, image_width)      
 
-                world_view_transform = self.getWorld2View2(R, T).transpose(0, 1)
-                projection_matrix = self.getProjectionMatrix(znear=0.01, zfar=40, fovX=FoVx, fovY=FoVy).transpose(0,1)
+                world_view_transform = torch.inverse(c2w).transpose(0, 1)
+                projection_matrix = self.getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=FoVx, fovY=FoVy).transpose(0,1)
                 full_proj_transform = torch.bmm(world_view_transform.unsqueeze(0), projection_matrix.unsqueeze(0)).squeeze(0)
-                camera_center = torch.inverse(world_view_transform)[3, :3]
-                    
+                camera_center = c2w[:3, 3:4]
+                
                 FoVx_lst.append(FoVx)       
                 FoVy_lst.append(FoVy)       
                 world_view_transform_lst.append(world_view_transform)      
@@ -235,7 +238,8 @@ class NuScenesDataset3DGS(NuScenesDataset):
         full_proj_transform = torch.stack(full_proj_transform_lst)
         camera_center = torch.stack(camera_center_lst)
         label_segs = torch.stack(label_segs)
-        
+        # label_depths = torch.stack(label_depths)
+
         return (FoVx, FoVy, torch.Tensor(image_heights), torch.Tensor(image_widths), world_view_transform, full_proj_transform, camera_center, label_segs)
         
         
@@ -264,7 +268,8 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 # load seg/depth GT of rays
                 seg_map = load_seg_label(img_file_path, self.semantic_gt_path)
                 coor, label_depth = load_depth(img_file_path, self.depth_gt_path)
-
+                if self.sem_mask_size is not None:
+                    seg_map = F.resize(seg_map, self.sem_mask_size)
                 sensor2egos.append(sensor2ego)
                 ego2globals.append(ego2global)
                 intrins.append(intrin)
@@ -285,13 +290,9 @@ class NuScenesDataset3DGS(NuScenesDataset):
         sensor2keyegos = global2keyego @ ego2globals.double() @ sensor2egos.double()  # as for sensor2egos[0, :, ...]
         sensor2keyegos = sensor2keyegos.float()
         sensor2keyegos = sensor2keyegos.view(T*N, 4, 4)
-
         image_height = seg_map.shape[0]
         image_width  = seg_map.shape[1]
-
         cameras = self.cameras(time_ids, sensor2keyegos, intrins, image_height, image_width, label_segs, label_depths)
-
-
         return cameras
 
     def get_data_info(self, index):
@@ -308,7 +309,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         if self.use_camera:
             input_dict["camera_info"] = self.get_viewpoints(index)
         else:
-            input_dict["camera_info"] = []
+            input_dict['camera_info'] = torch.zeros((1))
         return input_dict
 
     def evaluate(self, occ_results, runner=None, show_dir=None, **eval_kwargs):

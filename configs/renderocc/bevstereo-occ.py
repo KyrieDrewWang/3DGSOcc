@@ -60,6 +60,7 @@ model = dict(
         attn_drop_rate=0.,
         drop_path_rate=0.1,
         use_abs_pos_embed=False,
+        with_cp=True,
         return_stereo_feat=True,
         act_cfg=dict(type='GELU'),
         norm_cfg=dict(type='LN', requires_grad=True),
@@ -151,7 +152,7 @@ train_pipeline = [
     dict(
         type='Collect3D', keys=['img_inputs', 'gt_depth', 'voxel_semantics',
                                 'mask_lidar','mask_camera',
-                                'gt_depths', 'rays', 'camera_info'
+                                'gt_depths', 'camera_info', 'rays'
                                ])
 ]
 
@@ -184,9 +185,7 @@ test_pipeline = [
                 type='DefaultFormatBundle3D',
                 class_names=class_names,
                 with_label=False),
-            dict(type='Collect3D', keys=['points', 'img_inputs', 'voxel_semantics',
-                                        'mask_lidar','mask_camera',
-                                        ])
+            dict(type='Collect3D', keys=['points', 'img_inputs', 'voxel_semantics', 'mask_lidar','mask_camera', ])
         ])
 ]
 

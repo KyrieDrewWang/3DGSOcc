@@ -280,8 +280,7 @@ class WindowMSA(BaseModule):
 
         # define a parameter table of relative position bias
         self.relative_position_bias_table = nn.Parameter(
-            torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1),
-                        num_heads))  # 2*Wh-1 * 2*Ww-1, nH
+            torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1), num_heads))  # 2*Wh-1 * 2*Ww-1, nH
 
         # About 2x faster than original impl
         Wh, Ww = self.window_size
@@ -311,33 +310,32 @@ class WindowMSA(BaseModule):
         B, N, C = x.shape
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads,
                                   C // self.num_heads).permute(2, 0, 3, 1, 4)
-        q, k, v = qkv[0], qkv[1], qkv[
-            2]  # make torchscript happy (cannot use tensor as tuple)
+        q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         q = q * self.scale
         attn = (q @ k.transpose(-2, -1))
 
-        relative_position_bias = self.relative_position_bias_table[
-            self.relative_position_index.view(-1)].view(
-                self.window_size[0] * self.window_size[1],
-                self.window_size[0] * self.window_size[1],
-                -1)  # Wh*Ww,Wh*Ww,nH
-        relative_position_bias = relative_position_bias.permute(
-            2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
-        attn = attn + relative_position_bias.unsqueeze(0)
+        index = self.relative_position_index.view(-1)
+        relative_position_bias = self.relative_position_bias_table.index_select(0, index)
+        relative_position_bias = relative_position_bias.view(self.window_size[0] * self.window_size[1],self.window_size[0] * self.window_size[1], -1)
+        relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # Wh*Ww,Wh*Ww,nH
+        # relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
+        attn_new = attn.clone()
+        attn_new = attn + relative_position_bias.unsqueeze(0)
+        # attn = attn
 
         if mask is not None:
             nW = mask.shape[0]
-            attn = attn.view(B // nW, nW, self.num_heads, N,
+            attn_new = attn_new.view(B // nW, nW, self.num_heads, N,
                              N) + mask.unsqueeze(1).unsqueeze(0)
-            attn = attn.view(-1, self.num_heads, N, N)
-            attn = self.softmax(attn)
+            attn_new = attn_new.view(-1, self.num_heads, N, N)
+            attn_new = self.softmax(attn_new)
         else:
-            attn = self.softmax(attn)
+            attn_new = self.softmax(attn_new)
 
-        attn = self.attn_drop(attn)
+        attn_new = self.attn_drop(attn_new)
 
-        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = (attn_new @ v).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x

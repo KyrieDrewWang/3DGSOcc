@@ -3,8 +3,8 @@ from __future__ import division
 import argparse
 import copy
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]=" 4"
-# os.environ["CUDA_LAUNCH_BLOCKING"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="7"
+os.environ["CUDA_LAUNCH_BLOCKING"]="1"
 import time
 import warnings
 from os import path as osp
@@ -107,6 +107,15 @@ def parse_args():
         '--autoscale-lr',
         action='store_true',
         help='automatically scale lr with the number of gpus')
+    parser.add_argument(
+        '--find_unused_parameters',
+        action='store_true',
+    )
+    parser.add_argument(
+        "--work_dir",
+        type=str,
+        help='where logs and checkpoints go'
+    )
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -265,6 +274,7 @@ def main():
             if hasattr(datasets[0], 'PALETTE') else None)
     # add an attribute for visualization convenience
     model.CLASSES = datasets[0].CLASSES
+    # torch.autograd.set_detect_anomaly(True)
     train_model(
         model,
         datasets,

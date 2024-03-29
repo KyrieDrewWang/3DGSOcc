@@ -36,9 +36,7 @@ colors_map = np.array(
 
 
 # CVPR workshop
-nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476, 243808, 2457947, 
-            497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031, 
-            141625221, 2307405309])
+nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476, 243808, 2457947, 497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031, 141625221, 2307405309])
 
 
 
@@ -149,7 +147,7 @@ class BEVStereo4DOCC(BEVStereo4D):
                      intrins=intrin,
                      post_rots=post_rot,
                      post_trans=post_tran,
-                     frustum=self.img_view_transformer.cv_frustum.to(x),
+                     frustum=self.img_view_transformer.cv_frustum.to(x.device),
                      cv_downsample=4,
                      downsample=self.img_view_transformer.downsample,
                      grid_config=self.img_view_transformer.grid_config,
@@ -248,14 +246,14 @@ class BEVStereo4DOCC(BEVStereo4D):
                     [torch.zeros([b,
                                   c * (self.num_frame -
                                        self.extra_ref_frames - 1),
-                                  h, w]).to(bev_feat_key), bev_feat_key]
+                                  h, w]).to(bev_feat_key.device), bev_feat_key]
             else:
                 b, c, z, h, w = bev_feat_key.shape
                 bev_feat_list = \
                     [torch.zeros([b,
                                   c * (self.num_frame -
                                        self.extra_ref_frames - 1), z,
-                                  h, w]).to(bev_feat_key), bev_feat_key]
+                                  h, w]).to(bev_feat_key.device), bev_feat_key]
         if self.align_after_view_transfromation:  
             for adj_id in range(self.num_frame-2):
                 bev_feat_list[adj_id] = \

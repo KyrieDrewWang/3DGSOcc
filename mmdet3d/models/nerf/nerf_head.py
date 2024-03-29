@@ -269,7 +269,6 @@ class NerfHead(nn.Module):
         )
         semantic_loss = criterion(semantic, target_semantic.long())
         losses['loss_render_semantic'] = semantic_loss * self.weight_semantic
-    
 
         if self.weight_entropy_last > 0:
             pout = results['alphainv_last'].clamp(1e-6, 1-1e-6)

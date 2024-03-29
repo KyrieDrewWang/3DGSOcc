@@ -9,6 +9,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
+            "justMyCode": false,
             "console": "integratedTerminal",
             "args": [
                 "tools/test.py", 
@@ -25,9 +26,12 @@
             "type": "debugpy",
             "request": "launch",
             "program": "tools/train.py",
+            "justMyCode": false,
             "console": "integratedTerminal",
             "args": [
                 "configs/renderocc/renderocc-7frame.py", 
+                "--work_dir",
+                "DEBUG"
             ]
         }
     ]

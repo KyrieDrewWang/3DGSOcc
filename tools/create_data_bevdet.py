@@ -147,3 +147,7 @@ if __name__ == '__main__':
 
     print('add_ann_infos')
     add_ann_adj_info(extra_tag)
+
+# ileNotFoundError: [Errno 2] No such file or directory:  './data/nuscenes/seg_gt_lidarseg/n015-2018-07-18-11-50-34+0800__CAM_BACK__1531886022937525.jpg.bin'  
+# FileNotFoundError: [Errno 2] No such file or directory: './data/nuscenes/seg_gt_lidarseg/n015-2018-07-18-11-50-34+0800__CAM_BACK__1531886022937525.jpg.bin'
+#                                         /data/wc/RenderOcc/data/nuscenes/seg_gt_lidarseg/n015-2018-07-18-11-50-34+0800__CAM_BACK__1531886022937525.jpg.bin

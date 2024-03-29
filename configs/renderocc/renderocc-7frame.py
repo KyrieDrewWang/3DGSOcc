@@ -1,41 +1,42 @@
 _base_ = ['./bevstereo-occ.py']
 
+sem_mask_size=None
 model = dict(
-    type='RenderOcc',
+    type='SplattingOcc',
     final_softplus=True,
-    nerf_head=dict(
-        type='NerfHead',
-        point_cloud_range= [-40,-40,-1, 40,40,5.4],
-        voxel_size=0.4,
-        scene_center=[0, 0, 2.2],
-        radius=39,
-        use_depth_sup=True,
-    ),
     gauss_head=dict(
         type='GausSplatingHead',
-        point_cloud_range= [-40,-40,-1, 40,40,5.4],
+        sem_mask_size=sem_mask_size,
+        point_cloud_range= [-40, -40, -1, 40, 40, 5.4],
         voxel_size=0.4,
-        voxel_feature_dim=32
-    )
+        voxel_feature_dim=17,
+        num_classes=18,
+        white_background=False,
+        x_lim_num=200, 
+        y_lim_num=200, 
+        z_lim_num=16,
+    ),
 )
 
-optimizer = dict(type='AdamW', lr=1e-4, weight_decay=1e-2)
-
-
+optimizer = dict(type='AdamW', lr=1e-5, weight_decay=1e-2)
 
 depth_gt_path = './data/nuscenes/depth_gt'
 semantic_gt_path = './data/nuscenes/seg_gt_lidarseg'
 
 data = dict(
     samples_per_gpu=1,  # with 8 GPU, Batch Size=16 
-    workers_per_gpu=1,
+    workers_per_gpu=4,
     train=dict(
-        use_rays=True,
+        use_rays=False,
         use_camera=True,
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
-        aux_frames=[-3,-2,-1,1,2,3],
+        aux_frames=[],
+        # aux_frames=[-3,-2,-1,1,2,3],
+        sem_mask_size=sem_mask_size,
         max_ray_nums=38400,
+        znear=0.01, 
+        zfar=40,
     )
 )
 

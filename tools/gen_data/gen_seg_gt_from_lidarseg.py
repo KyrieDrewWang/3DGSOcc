@@ -81,12 +81,10 @@ def map_pointcloud_to_image(
     return points, coloring, labels
 
 
-save_folder = os.path.join('./data/nuscenes/', 'seg_gt_lidarseg') 
-info_path_train = './data/nuscenes/bevdetv2-nuscenes_infos_train.pkl'
-info_path_val = './data/nuscenes/bevdetv2-nuscenes_infos_val.pkl'
 
 
-visual=True
+
+visual=False
 lidar_key = 'LIDAR_TOP'
 cam_keys = [
     'CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_RIGHT',
@@ -192,8 +190,8 @@ label_merged_map = {0: 0, 1: 0, 2: 7, 3: 7, 4: 7, 5: 0, 6: 7, 7: 0, 8: 0, 9: 1, 
 13, 27: 14, 28: 15, 29: 0, 30: 16, 31: 0}
 
 
-def worker(inx, info):
-    
+def worker(data):
+    inx, info = data
     try:
         lidar_path = info['lidar_path']
         
@@ -201,10 +199,7 @@ def worker(inx, info):
                             dtype=np.float32,
                             count=-1).reshape(-1, 5)[..., :4]
 
-        lidarseg_labels_filename = os.path.join(nusc.dataroot,
-                                                nusc.get('lidarseg', 
-                                                    nusc.get('sample', info['token'])['data']['LIDAR_TOP']
-                                                    )['filename'])
+        lidarseg_labels_filename = os.path.join(nusc.dataroot, nusc.get('lidarseg', nusc.get('sample', info['token'])['data']['LIDAR_TOP'])['filename'])
         points_label = np.fromfile(lidarseg_labels_filename, dtype=np.uint8)
         points_label_merge = np.zeros_like(points_label)
         for key in label_merged_map:
@@ -217,6 +212,8 @@ def worker(inx, info):
         ego2global_rotation = info['ego2global_rotation']
         for i, cam_key in enumerate(cam_keys):
             file_name = os.path.split(info['cams'][cam_key]['data_path'])[-1]
+            if "1531886022037525" in file_name:
+                print("the target ", inx)
             if os.path.exists(os.path.join(save_folder, f'{file_name}.bin')):
                 return
             sensor2ego_translation = info['cams'][cam_key]['sensor2ego_translation']
@@ -224,8 +221,7 @@ def worker(inx, info):
             cam_ego2global_translation = info['cams'][cam_key]['ego2global_translation']
             cam_ego2global_rotation = info['cams'][cam_key]['ego2global_rotation']
             cam_intrinsic = info['cams'][cam_key]['cam_intrinsic']
-            img = mmcv.imread(
-                os.path.join(info['cams'][cam_key]['data_path']))
+            img = mmcv.imread(os.path.join(info['cams'][cam_key]['data_path']))
             pts_img, depth, label = map_pointcloud_to_image(
                 points.copy(), img, 
                 copy.deepcopy(lidar2ego_translation), 
@@ -238,9 +234,7 @@ def worker(inx, info):
                 copy.deepcopy(cam_ego2global_rotation),
                 copy.deepcopy(cam_intrinsic))
             
-            np.concatenate([pts_img[:2, :].T, label[:,None]],
-                        axis=1).astype(np.float32).flatten().tofile(
-                            os.path.join(save_folder, f'{file_name}.bin'))
+            np.concatenate([pts_img[:2, :].T, label[:,None]], axis=1).astype(np.float32).flatten().tofile(os.path.join(save_folder, f'{file_name}.bin'))
             if visual:
                 mmcv.mkdir_or_exist(os.path.join('./data', 'seg_gt_visual'))
                 png_name = os.path.join('./data', 'seg_gt_visual', file_name)
@@ -248,26 +242,44 @@ def worker(inx, info):
                 cv2.imwrite(png_name, img_drawed)
     except Exception as e:
         print("failed:", lidarseg_labels_filename)
-        print("inx:", str(inx))
-        print("info", info)
+        print("inx", str(inx))
         return
+    return
 
 if __name__ == '__main__':
+    
+    save_folder = os.path.join('./data/nuscenes/', 'seg_gt_lidarseg') 
+    info_path_train = './data/nuscenes/bevdetv2-nuscenes_infos_train.pkl'
+    info_path_val = './data/nuscenes/bevdetv2-nuscenes_infos_val.pkl'
+    
     print('Save to %s'%save_folder)
     mmcv.mkdir_or_exist(save_folder)
-    # ./data/nuscenes/lidarseg/v1.0-trainval/045b73af5cca4ea8bd8232a245505e8a_lidarseg.bin
-    infos = mmcv.load(info_path_train)['infos']
-    pbar = tqdm(enumerate(infos), total=len(infos), desc="starting processing train data")
-    print(info_path_train, len(infos))
-    with Pool(64) as p:
-        p.map(worker, pbar)
-    pbar.close()
+    
+    # infos = mmcv.load(info_path_train)['infos']
+    # pbar = tqdm(enumerate(infos), total=len(infos), desc="starting processing train data")
+    # # pbar = enumerate(infos)
+    # p = Pool(32)
+    # for d in pbar:
+    #     # print(d)
+    #     # p.apply_async(worker, d, )
+    #     worker(d)
+    # p.close()
+    # p.join()
+    # pbar.close()
+    # print(info_path_train, len(infos))
+
     infos = mmcv.load(info_path_val)['infos']
-    pbar = tqdm(infos, total=len(infos), desc="starting processing val data")
-    print(info_path_val, len(infos))
-    with Pool(64) as p:
-        p.map(worker, pbar)
+    pbar = tqdm(enumerate(infos), total=len(infos), desc="starting processing val data")
+    # pbar = enumerate(infos)
+    p = Pool(32)
+    for d in pbar:
+        # p.apply_async(worker, d, )
+        worker(d)
+    p.close()
+    p.join()
     pbar.close()
+    print(info_path_val, len(infos))
+
 
         
     

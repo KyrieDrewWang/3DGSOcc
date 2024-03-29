@@ -13,16 +13,13 @@ import time
 
 
 # occ3d-nuscenes
-nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476, 243808, 2457947, 
-            497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031, 
-            141625221, 2307405309])
+nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476, 243808, 2457947, 497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031, 141625221, 2307405309])
 
 @DETECTORS.register_module()
-class RenderOcc(BEVStereo4DOCC):
+class SplattingOcc(BEVStereo4DOCC):
     def __init__(self,
                  out_dim=32,
                  num_classes=18,
-                 nerf_head=None,
                  test_threshold=8.5,
                  use_lss_depth_loss=True,
                  use_3d_loss=False,
@@ -30,7 +27,7 @@ class RenderOcc(BEVStereo4DOCC):
                  final_softplus=False,
                  gauss_head=None,
                  **kwargs):
-        super(RenderOcc, self).__init__(use_predicter=False, **kwargs)
+        super(SplattingOcc, self).__init__(use_predicter=False, **kwargs)
         self.out_dim = out_dim
         self.use_3d_loss = use_3d_loss
         self.test_threshold = test_threshold
@@ -74,8 +71,6 @@ class RenderOcc(BEVStereo4DOCC):
             nn.Softplus(),
             nn.Linear(self.out_dim*2, num_classes-1),
         )
-
-        self.nerf_head = builder.build_head(nerf_head)
         self.gaussplating_head = builder.build_head(gauss_head)
 
     def loss_3d(self,voxel_semantics,mask_camera,density_prob, semantic):
@@ -133,11 +128,11 @@ class RenderOcc(BEVStereo4DOCC):
                       **kwargs):
         # extract volumn feature
         img_inputs = self.prepare_inputs(img_inputs, stereo=True)
-        imgs, sensor2keyegos, ego2globals, intrins, post_rots, post_trans, \
-                bda, curr2adjsensor = img_inputs
+        # imgs, sensor2keyegos, ego2globals, intrins, post_rots, post_trans, \
+        #         bda, curr2adjsensor = img_inputs
         img_feats, depth = self.extract_img_feat(img_inputs, img_metas, **kwargs)
         voxel_feats = self.final_conv(img_feats[0]).permute(0, 4, 3, 2, 1) # bncdhw->bnwhdc
-
+        # fake_loss = voxel_feats - torch.rand_like(voxel_feats)
         # predict SDF
         density_prob = self.density_mlp(voxel_feats)
         density = density_prob[..., 0]
@@ -151,14 +146,15 @@ class RenderOcc(BEVStereo4DOCC):
             assert voxel_semantics.min() >= 0 and voxel_semantics.max() <= 17
             loss_occ = self.loss_3d(voxel_semantics, mask_camera, density_prob, semantic)
             losses.update(loss_occ)
-        if self.nerf_head:          # 2D rendering loss
-            loss_rendering = self.nerf_head(density, semantic, rays=kwargs['rays'], bda=bda)
-            losses.update(loss_rendering)
+        
         if self.gaussplating_head:
-            loss_gaussian = self.gaussplating_head(voxel_feats, kwargs['camera_info'], density)
+            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density)
             losses.update(loss_gaussian)
+            
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)
             loss_depth = self.img_view_transformer.get_depth_loss(kwargs['gt_depth'], depth)
-            losses['loss_lss_depth'] = loss_depth
+            losses['loss_lss_depth'] = loss_depth    
+        
         return losses
+
 
