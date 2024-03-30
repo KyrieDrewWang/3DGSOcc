@@ -439,7 +439,7 @@ class Custom3DDataset(Dataset):
                     continue
                 return data
             except Exception as e:
-                print("data reading failed:", idx)
+                # print("data reading failed:", idx)
                 idx = self._rand_another(idx)
                 continue
                 
