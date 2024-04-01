@@ -20,4 +20,4 @@
 #     --launcher pytorch \
 #     --dump_dir results \
 #     ${@:4}
-CUDA_VISIBLE_DEVICES=7 torchrun --nproc_per_node=1 --master_port=8078 tools/test.py configs/renderocc/renderocc-7frame.py /data/wc/RenderOcc/work_dirs/renderocc-7frame/latest.pth --launcher pytorch --dump_dir results
+CUDA_VISIBLE_DEVICES=4,5,6,7 python -m torch.distributed.launch --nproc_per_node=4 --master_port=8091 tools/test.py configs/renderocc/splattingocc-Nframe.py /data/wc/RenderOcc/splattingocc_workdir/latest.pth --launcher pytorch --eval segm --gpu-collect #--tmpdir /home/wc/results/tmp  --dump_dir /home/wc/results 

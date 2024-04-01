@@ -242,8 +242,11 @@ def main():
             model.cuda(),
             device_ids=[torch.cuda.current_device()],
             broadcast_buffers=False)
-        outputs = multi_gpu_test(model, data_loader, args.dump_dir,
-                                args.gpu_collect
+        outputs = multi_gpu_test(model, 
+                                 data_loader, 
+                                 args.dump_dir,
+                                 args.tmpdir,
+                                 args.gpu_collect
                                 )
 
 
