@@ -2,3 +2,8 @@ log for splattingocc:
 ======pre
 git commit id 0487057666686b5447455b2f3dbff785d0aa4786
 ======V1.0
+git commit id d30789c7701d15d6de7576f0c4b54e518a6bb6aa
+sem_loss_rendered calculated with mask (exculude 0 labels)
+======V1.1
+git commit id 
+sem_loss_rendered averaged among view points.

@@ -90,7 +90,7 @@ class GausSplatingHead(nn.Module):
         return voxel_points
     
     def forward(self, voxel_feats, cameras, density, **kwargs):
-        loss_sem = 0
+        loss_sem_batch = 0
         for batch_id in range(voxel_feats.shape[0]):
             view_points = [c[batch_id] for c in cameras[:-1]]
             vox_feature_i = voxel_feats[batch_id]
@@ -98,6 +98,7 @@ class GausSplatingHead(nn.Module):
             gt_sem_batch_id = cameras[-1][batch_id]
             density_i = density_i.reshape(-1,1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
+            loss_sem_c_id = 0
             for c_id in range(view_points[0].shape[0]):
                 view_point = [p[c_id] for p in view_points]
                 rendered_feature_map = render_feature_map(
@@ -120,8 +121,10 @@ class GausSplatingHead(nn.Module):
                 render_feature_map_masked = torch.masked_select(rendered_semantic_map, mask.unsqueeze(1)).reshape(-1, self.voxel_feature_dim)
                 gt_sem_masked = torch.masked_select(gt_sem, mask).long()
                 loss_sem_id = self.bce_contrastive_loss(render_feature_map_masked, gt_sem_masked)
-                loss_sem += loss_sem_id
-        loss_sem = loss_sem / voxel_feats.shape[0] * self.gaussian_sem_weight           
+                loss_sem_c_id = loss_sem_c_id + loss_sem_id
+            loss_sem_c_id = loss_sem_c_id / view_points[0].shape[0]
+            loss_sem_batch = loss_sem_batch + loss_sem_c_id
+        loss_sem = loss_sem_batch / voxel_feats.shape[0] * self.gaussian_sem_weight           
         return {"render_sem_loss": loss_sem}
     
     
