@@ -95,7 +95,8 @@ class GausSplatingHead(nn.Module):
             view_points = [c[batch_id] for c in cameras[:-1]]
             vox_feature_i = voxel_feats[batch_id]
             density_i = density[batch_id]  
-            gt_sem_batch_id = cameras[-1][batch_id]
+            gt_sem_batch_id = cameras[-2][batch_id]
+            sem_label_mask_batch_id  = cameras[-1][batch_id]
             density_i = density_i.reshape(-1,1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_sem_c_id = 0
@@ -115,12 +116,14 @@ class GausSplatingHead(nn.Module):
                 rendered_semantic_map = rendered_feature_map.permute(1,2,0)
                 # print(rendered_semantic_map.shape)
                 rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
+                sem_label_mask = sem_label_mask_batch_id[c_id]
+                sem_label_mask = sem_label_mask.reshape(-1).bool()
                 gt_sem = gt_sem_batch_id[c_id]   
                 gt_sem = gt_sem.reshape(-1).long()
-                # mask = gt_sem != 0
-                # render_feature_map_masked = torch.masked_select(rendered_semantic_map, mask.unsqueeze(1)).reshape(-1, self.voxel_feature_dim)
-                # gt_sem_masked = torch.masked_select(gt_sem, mask).long()
-                loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map, gt_sem)
+                # mask by the projected labels
+                rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask)
+                gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
+                loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
                 loss_sem_c_id = loss_sem_c_id + loss_sem_id
             loss_sem_c_id = loss_sem_c_id / view_points[0].shape[0]
             loss_sem_batch = loss_sem_batch + loss_sem_c_id

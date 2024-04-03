@@ -11,3 +11,7 @@ sem_loss_rendered averaged among view points.
 git commit id 
 sem_loss_rendered averaged among view points.
 sem_loss_rendered calculated without mask (exculude 0 labels)
+======v1.3
+git commit id e4bef8d74bb320047017a1156d14c74a2a6db5ef
+sem_loss_rendered averaged among view poitns
+sem_loss_rendered calculated with mask (generating when projecting sem labels)
