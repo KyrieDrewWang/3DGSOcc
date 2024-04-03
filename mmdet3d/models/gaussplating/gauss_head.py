@@ -122,6 +122,7 @@ class GausSplatingHead(nn.Module):
                 gt_sem = gt_sem.reshape(-1).long()
                 # mask by the projected labels
                 rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
+                rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
                 gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
                 loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
                 loss_sem_c_id = loss_sem_c_id + loss_sem_id
