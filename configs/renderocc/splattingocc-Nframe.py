@@ -11,6 +11,7 @@ model = dict(
         voxel_size=0.4,
         voxel_feature_dim=17,
         num_classes=18,
+        gaussian_sem_weight=1.0,
         white_background=False,
         x_lim_num=200, 
         y_lim_num=200, 

@@ -153,7 +153,7 @@ class SplattingOcc(BEVStereo4DOCC):
             
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)
             loss_depth = self.img_view_transformer.get_depth_loss(kwargs['gt_depth'], depth)
-            losses['loss_lss_depth'] = loss_depth    
+            losses['loss_lss_depth'] = loss_depth*2.0   
         
         return losses
 
