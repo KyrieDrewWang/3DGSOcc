@@ -13,3 +13,4 @@ results/
 mmdet3d/models/gaussplating/submodules/
 DEBUG/
 splattingocc_workdir/
+socc_workdir

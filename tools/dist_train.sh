@@ -17,4 +17,4 @@
 #     $CONFIG \
 #     --launcher pytorch ${@:3}
 # CUDA_VISIBLE_DEVICES=8,4,5,6 python -m torch.distributed.launch --nproc_per_node=1 --nnodes=2 --master_port=8077 tools/train.py configs/renderocc/renderocc-7frame.py --launcher pytorch
-CUDA_VISIBLE_DEVICES=3,4,5,6 python -m torch.distributed.launch --nproc_per_node=4 tools/train.py configs/renderocc/splattingocc-Nframe.py --launcher pytorch --work_dir splattingocc_workdir
+CUDA_VISIBLE_DEVICES=3,4,5,6 python -m torch.distributed.launch --master_port=8077 --nproc_per_node=4 tools/train.py configs/renderocc/splattingocc-Nframe.py --launcher pytorch --work_dir socc_workdir

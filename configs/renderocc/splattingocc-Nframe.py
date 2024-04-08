@@ -18,7 +18,7 @@ model = dict(
     ),
 )
 
-optimizer = dict(type='AdamW', lr=1e-5, weight_decay=1e-2)
+optimizer = dict(type='AdamW', lr=1e-4, weight_decay=1e-2)
 
 depth_gt_path = './data/nuscenes/depth_gt'
 semantic_gt_path = './data/nuscenes/seg_gt_lidarseg'
