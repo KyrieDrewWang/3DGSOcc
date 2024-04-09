@@ -55,11 +55,11 @@ class GausSplatingHead(nn.Module):
         self.scale_act = torch.exp
         self.rot_act = torch.nn.functional.normalize
 
-        # self.splatting_semantic_mlp = nn.Sequential(
-        #     nn.Linear(self.voxel_feature_dim, self.voxel_feature_dim*2),
-        #     nn.Softplus(),
-        #     nn.Linear(self.voxel_feature_dim*2, num_classes-1),
-        # )
+        self.splatting_semantic_mlp = nn.Sequential(
+            nn.Linear(self.voxel_feature_dim, self.voxel_feature_dim*2),
+            nn.Softplus(),
+            nn.Linear(self.voxel_feature_dim*2, num_classes-1),
+        )
         if balance_cls_weight:
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
         else:
@@ -112,8 +112,8 @@ class GausSplatingHead(nn.Module):
                     voxel_features=vox_feature_i,  # n*32
                     white_background = self.white_background,
                 )
-                # rendered_semantic_map = self.splatting_semantic_mlp(rendered_feature_map.permute(1,2,0))
-                rendered_semantic_map = rendered_feature_map.permute(1,2,0)
+                rendered_semantic_map = self.splatting_semantic_mlp(rendered_feature_map.permute(1,2,0))
+                rendered_semantic_map = rendered_semantic_map.permute(1,2,0)
                 # print(rendered_semantic_map.shape)
                 rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
                 sem_label_mask = sem_label_mask_batch_id[c_id]

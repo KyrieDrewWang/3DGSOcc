@@ -21,8 +21,12 @@ sem_loss_rendered averaged among view poitns
 sem_loss_rendered calculated with mask (generating when projecting sem labels)
 learning rate = 1e-4
 ======v1.5
-git commit id 
+git commit id d07e2b58cf5662beb070f81b76c73408cc3a59d6
 sem_loss_rendered averaged among view poitns
 sem_loss_rendered calculated with mask (generating when projecting sem labels)
 learning rate = 1e-4
 weight 2.0 to the loss_lss_depth
+======v1.6
+git commit id 
+based on 1.5
+the features of the voxels are projected and then used to predict the semantics.
