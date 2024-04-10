@@ -71,6 +71,14 @@ class SplattingOcc(BEVStereo4DOCC):
             nn.Softplus(),
             nn.Linear(self.out_dim*2, num_classes-1),
         )
+
+        self.opacity_head = nn.Sequential(
+            nn.Linear(self.out_dim, self.out_dim*2),
+            nn.Softplus(),
+            nn.Linear(self.out_dim*2, 1),
+            nn.Softplus(),
+        )
+
         self.gaussplating_head = builder.build_head(gauss_head)
 
     def loss_3d(self,voxel_semantics,mask_camera,density_prob, semantic):
@@ -84,7 +92,7 @@ class SplattingOcc(BEVStereo4DOCC):
 
         # compute loss
         loss_geo=self.loss_occ(density_prob, density_target)
-        loss_sem = self.semantic_loss(semantic[semantic_mask], voxel_semantics[semantic_mask].long())
+        loss_sem = self.semantic_loss(torch.masked_select(semantic, semantic_mask.unsqueeze(1)).reshape(-1, self.num_classes-1), torch.masked_select(voxel_semantics, semantic_mask).long())
 
         loss_ = dict()
         loss_['loss_3d_geo'] = loss_geo
@@ -135,8 +143,9 @@ class SplattingOcc(BEVStereo4DOCC):
         # fake_loss = voxel_feats - torch.rand_like(voxel_feats)
         # predict SDF
         density_prob = self.density_mlp(voxel_feats)
-        density = density_prob[..., 0]
+        # density = density_prob[..., 0]
         semantic = self.semantic_mlp(voxel_feats)
+        opacity = self.opacity_head(voxel_feats)
 
         # compute loss
         losses = dict()
@@ -148,7 +157,7 @@ class SplattingOcc(BEVStereo4DOCC):
             losses.update(loss_occ)
         
         if self.gaussplating_head:
-            loss_gaussian = self.gaussplating_head(voxel_feats, kwargs['camera_info'], density)
+            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], opacity)
             losses.update(loss_gaussian)
             
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)

@@ -55,11 +55,11 @@ class GausSplatingHead(nn.Module):
         self.scale_act = torch.exp
         self.rot_act = torch.nn.functional.normalize
 
-        self.splatting_semantic_mlp = nn.Sequential(
-            nn.Linear(self.voxel_feature_dim, self.voxel_feature_dim*2),
-            nn.Softplus(),
-            nn.Linear(self.voxel_feature_dim*2, num_classes-1),
-        )
+        # self.splatting_semantic_mlp = nn.Sequential(
+        #     nn.Linear(self.voxel_feature_dim, self.voxel_feature_dim*2),
+        #     nn.Softplus(),
+        #     nn.Linear(self.voxel_feature_dim*2, num_classes-1),
+        # )
         if balance_cls_weight:
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
         else:
@@ -89,15 +89,15 @@ class GausSplatingHead(nn.Module):
         voxel_points = torch.stack([X, Y, Z], dim=-1).reshape(-1, 3)
         return voxel_points
     
-    def forward(self, voxel_feats, cameras, density, **kwargs):
+    def forward(self, voxel_feats, cameras, opacity, **kwargs):
         loss_sem_batch = 0
         for batch_id in range(voxel_feats.shape[0]):
             view_points = [c[batch_id] for c in cameras[:-1]]
             vox_feature_i = voxel_feats[batch_id]
-            density_i = density[batch_id]  
+            opacity_i = opacity[batch_id]  
             gt_sem_batch_id = cameras[-2][batch_id]
             sem_label_mask_batch_id  = cameras[-1][batch_id]
-            density_i = density_i.reshape(-1,1)
+            opacity_i = opacity_i.reshape(-1,1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_sem_c_id = 0
             for c_id in range(view_points[0].shape[0]):
@@ -106,14 +106,14 @@ class GausSplatingHead(nn.Module):
                     feature_dim = self.voxel_feature_dim,
                     viewpoint_camera=view_point,
                     voxel_xyz=self.pc_xyz.to(vox_feature_i), # n*3
-                    opacity=density_i, # n*1
+                    opacity=opacity_i, # n*1
                     scaling=self.scale_act((self.scales.to(vox_feature_i))), # n*3
                     rotations=self.rot_act(self.rots.to(vox_feature_i)), # n*4
                     voxel_features=vox_feature_i,  # n*32
                     white_background = self.white_background,
                 )
-                rendered_semantic_map = self.splatting_semantic_mlp(rendered_feature_map.permute(1,2,0))
-                rendered_semantic_map = rendered_semantic_map.permute(1,2,0)
+                # rendered_semantic_map = self.splatting_semantic_mlp(rendered_feature_map.permute(1,2,0))
+                rendered_semantic_map = rendered_feature_map.permute(1,2,0)
                 # print(rendered_semantic_map.shape)
                 rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
                 sem_label_mask = sem_label_mask_batch_id[c_id]
