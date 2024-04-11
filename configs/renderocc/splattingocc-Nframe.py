@@ -21,7 +21,7 @@ model = dict(
     ),
 )
 
-optimizer = dict(type='AdamW', lr=1e-4, weight_decay=1e-2)
+optimizer = dict(type='AdamW', lr=1e-5, weight_decay=1e-2)
 
 depth_gt_path = './data/nuscenes/depth_gt'
 semantic_gt_path = './data/nuscenes/seg_gt_lidarseg'
@@ -34,7 +34,7 @@ data = dict(
         use_camera=True,
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
-        aux_frames=[],
+        aux_frames=[-1,1],
         # aux_frames=[-3,-2,-1,1,2,3],
         sem_mask_size=sem_mask_size,
         max_ray_nums=38400,

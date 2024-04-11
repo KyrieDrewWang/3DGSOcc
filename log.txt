@@ -27,6 +27,11 @@ sem_loss_rendered calculated with mask (generating when projecting sem labels)
 learning rate = 1e-4
 weight 2.0 to the loss_lss_depth
 ======v1.6
-git commit id 
+git commit id 5b3a6f054e1e6bc476ab3b89316049f94555ff18
 based on 1.5
 the opacity is generated using opacity head
+======v1.7
+git commit id
+based on 1.6
+the sem_loss_rendered are not averaged on viewpoints
+and [1,-1] frames are included to add more supervision

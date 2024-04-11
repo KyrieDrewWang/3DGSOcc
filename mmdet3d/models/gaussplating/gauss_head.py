@@ -126,7 +126,7 @@ class GausSplatingHead(nn.Module):
                 gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
                 loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
                 loss_sem_c_id = loss_sem_c_id + loss_sem_id
-            loss_sem_c_id = loss_sem_c_id / view_points[0].shape[0]
+            # loss_sem_c_id = loss_sem_c_id / view_points[0].shape[0]
             loss_sem_batch = loss_sem_batch + loss_sem_c_id
         loss_sem = loss_sem_batch / voxel_feats.shape[0] * self.gaussian_sem_weight           
         return {"render_sem_loss": loss_sem}
