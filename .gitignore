@@ -15,3 +15,5 @@ DEBUG/
 splattingocc_workdir/
 socc_workdir
 pyrightconfig.json
+tools/sam_encoder/segment_anything.egg-info
+tools/sam_encoder/sam_onnx_example.onnx

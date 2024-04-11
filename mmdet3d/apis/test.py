@@ -60,7 +60,7 @@ def merge_images(image_list, gap_width=10, size=[500,800]):
     return merged_image
 
 
-def multi_gpu_test(model, data_loader, dump_dir=None, tmpdir=None, gpu_collect=False):
+def multi_gpu_test(model, data_loader, dump_dir=None, tmpdir=None, gpu_collect=False, test_num=0):
     model.eval()
     results = []
     dataset = data_loader.dataset
@@ -69,7 +69,8 @@ def multi_gpu_test(model, data_loader, dump_dir=None, tmpdir=None, gpu_collect=F
         prog_bar = mmcv.ProgressBar(len(dataset))
     time.sleep(2)  # This line can prevent deadlock problem in some cases.
     for i, data in enumerate(data_loader):
-        
+        if i >= test_num and test_num != 0:
+            break   
         with torch.no_grad():
             result = model(return_loss=False, rescale=True, **data)
 
@@ -99,12 +100,12 @@ def multi_gpu_test(model, data_loader, dump_dir=None, tmpdir=None, gpu_collect=F
             batch_size = len(result)
             for _ in range(batch_size * world_size):
                 prog_bar.update()
-                
+     
     # collect results from all ranks
     if gpu_collect:
-        results = collect_results_gpu(results, len(dataset))
+        results = collect_results_gpu(results, len(dataset) if test_num==0 else test_num)
     else:
-        results = collect_results_cpu(results, len(dataset), tmpdir)
+        results = collect_results_cpu(results, len(dataset) if test_num==0 else test_num, tmpdir)
     return results
 
 
