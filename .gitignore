@@ -9,7 +9,6 @@ work_dirs/
 mmdet3d.egg-info/
 mmdet3d/.mim/
 results/
-mmdet3d/models/gaussplating/submodules/
 DEBUG/
 splattingocc_workdir/
 socc_workdir
