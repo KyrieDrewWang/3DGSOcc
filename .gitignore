@@ -1,4 +1,3 @@
-.vscode/
 build/
 ckpts/
 
@@ -7,8 +6,6 @@ ckpts/
 work_dirs/
 /data
 mmdet3d.egg-info/
-mmdet3d/.mim/
-results/
 DEBUG/
 splattingocc_workdir/
 socc_workdir
