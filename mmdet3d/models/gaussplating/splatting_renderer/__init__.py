@@ -15,6 +15,8 @@ def render_feature_map(
     white_background = False,
     scaling_modifier = 1.0,
     debug = False,
+    render_image_height = 900,
+    render_image_width = 1600,
 ):
     """
     Render the input feature map. 
@@ -34,18 +36,16 @@ def render_feature_map(
     tanfovy = math.tan(viewpoint_camera[1] * 0.5)
 
     raster_settings = GaussianRasterizationSettings(
-        image_height=int(viewpoint_camera[2]),
-        image_width=int(viewpoint_camera[3]),
-        # image_height=100,
-        # image_width=200,
+        image_height=render_image_height,
+        image_width=render_image_width,
         tanfovx=tanfovx,
         tanfovy=tanfovy,
         bg=background_color,
         scale_modifier=scaling_modifier,
-        viewmatrix=viewpoint_camera[4],
-        projmatrix=viewpoint_camera[5],
+        viewmatrix=viewpoint_camera[2],
+        projmatrix=viewpoint_camera[3],
         sh_degree=active_sh_degree, # 0 -- > 1 -- > 2 -- > 3 球谐函数的次数, 最开始是0, 每隔1000次迭代, 将球谐函数的次数增加1，此处采用默认为0
-        campos=viewpoint_camera[6],
+        campos=viewpoint_camera[4],
         prefiltered=False,
         debug=debug
     )

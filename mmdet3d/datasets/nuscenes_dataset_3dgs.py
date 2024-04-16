@@ -12,7 +12,6 @@ from .builder import DATASETS
 from .nuscenes_dataset import NuScenesDataset
 from .occ_metrics import Metric_mIoU, Metric_FScore
 from .ray import generate_rays
-from torchvision.transforms import functional as F
 
 nusc_class_nums = torch.Tensor([
     2854504, 7291443, 141614, 4239939, 32248552, 
@@ -80,7 +79,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 wrs_use_batch=False,
                 znear=0.01, 
                 zfar=40,
-                sem_mask_size=None,
+                render_img_shape=None,
                 **kwargs):
         super().__init__(**kwargs)
         self.use_rays = use_rays
@@ -91,14 +90,14 @@ class NuScenesDataset3DGS(NuScenesDataset):
         self.max_ray_nums = max_ray_nums
         self.znear=znear
         self.zfar = zfar
-        self.sem_mask_size = sem_mask_size
         if wrs_use_batch:   # compute with batch data
             self.WRS_balance_weight = None
         else:               # compute with total dataset
             self.WRS_balance_weight = torch.exp(0.005 * (nusc_class_nums.max() / nusc_class_nums - 1))
 
         self.dynamic_class = torch.tensor(dynamic_class)
-
+        self.render_image_height = render_img_shape[0]
+        self.render_image_width = render_img_shape[1]  
 
     def get_rays(self, index):
         info = self.data_infos[index]
@@ -200,11 +199,9 @@ class NuScenesDataset3DGS(NuScenesDataset):
         P[2, 3] = -(zfar * znear) / (zfar - znear)
         return P
 
-    def cameras(self, time_ids, sensor2keyegos, intrins, image_height, image_width, label_segs, label_depths, label_masks):
+    def cameras(self, time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks):
         FoVx_lst = []
         FoVy_lst = []
-        image_heights = []
-        image_widths = []
         world_view_transform_lst = []
         full_proj_transform_lst = []
         camera_center_lst = []
@@ -214,18 +211,15 @@ class NuScenesDataset3DGS(NuScenesDataset):
             for i in time_ids[time_id]:    # multi cameras of single frame
                 c2w = sensor2keyegos[i]
                 intrin = intrins[i]
-                image_heights.append(image_height)
-                image_widths.append(image_width)
                 
                 focal_length_x, focal_length_y = intrin[0][0], intrin[1][1]
-                FoVy = self.focal2fov(focal_length_y, image_height)
-                FoVx = self.focal2fov(focal_length_x, image_width)      
+                FoVy = self.focal2fov(focal_length_y, self.render_image_height)
+                FoVx = self.focal2fov(focal_length_x, self.render_image_width)      
 
                 world_view_transform = torch.inverse(c2w).transpose(0, 1)
                 projection_matrix = self.getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=FoVx, fovY=FoVy).transpose(0,1)
                 full_proj_transform = torch.bmm(world_view_transform.unsqueeze(0), projection_matrix.unsqueeze(0)).squeeze(0)
-                camera_center = c2w[:3, 3:4]
-                
+                camera_center = c2w[:3, 3]
                 FoVx_lst.append(FoVx)       
                 FoVy_lst.append(FoVy)       
                 world_view_transform_lst.append(world_view_transform)      
@@ -241,7 +235,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         label_masks = torch.stack(label_masks)
         # label_depths = torch.stack(label_depths)
 
-        return (FoVx, FoVy, torch.Tensor(image_heights), torch.Tensor(image_widths), world_view_transform, full_proj_transform, camera_center, label_segs, label_masks)
+        return (FoVx, FoVy, world_view_transform, full_proj_transform, camera_center, label_segs, label_masks)
         
         
     def get_viewpoints(self, index):
@@ -272,8 +266,6 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 coor, label_depth = load_depth(img_file_path, self.depth_gt_path)
                 mask = np.zeros_like(seg_map)
                 mask[coor[:,1], coor[:,0]] = 1
-                if self.sem_mask_size is not None:
-                    seg_map = F.resize(seg_map, self.sem_mask_size)
                 sensor2egos.append(sensor2ego)
                 ego2globals.append(ego2global)
                 intrins.append(intrin)
@@ -295,9 +287,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         sensor2keyegos = global2keyego @ ego2globals.double() @ sensor2egos.double()  # as for sensor2egos[0, :, ...]
         sensor2keyegos = sensor2keyegos.float()
         sensor2keyegos = sensor2keyegos.view(T*N, 4, 4)
-        image_height = seg_map.shape[0]
-        image_width  = seg_map.shape[1]
-        cameras = self.cameras(time_ids, sensor2keyegos, intrins, image_height, image_width, label_segs, label_depths, label_masks)
+        cameras = self.cameras(time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks)
         return cameras
 
     def get_data_info(self, index):

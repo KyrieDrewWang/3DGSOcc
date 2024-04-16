@@ -1,6 +1,5 @@
 _base_ = ['./bevstereo-occ.py']
-
-sem_mask_size=None
+render_img_shape=(450, 800)
 model = dict(
     type='SplattingOcc',
     final_softplus=True,
@@ -8,7 +7,6 @@ model = dict(
     use_lss_depth_loss=True,
     gauss_head=dict(
         type='GausSplatingHead',
-        sem_mask_size=sem_mask_size,
         point_cloud_range= [-40, -40, -1, 40, 40, 5.4],
         voxel_size=0.4,
         voxel_feature_dim=17,
@@ -18,6 +16,7 @@ model = dict(
         x_lim_num=200, 
         y_lim_num=200, 
         z_lim_num=16,
+        render_img_shape=render_img_shape,
     ),
 )
 
@@ -34,12 +33,12 @@ data = dict(
         use_camera=True,
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
-        aux_frames=[-1,1],
+        aux_frames=[-1,1,2],
         # aux_frames=[-3,-2,-1,1,2,3],
-        sem_mask_size=sem_mask_size,
         max_ray_nums=38400,
         znear=0.01, 
         zfar=40,
+        render_img_shape=render_img_shape
     )
 )
 
