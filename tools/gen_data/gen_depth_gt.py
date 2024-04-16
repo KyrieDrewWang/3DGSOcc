@@ -120,17 +120,17 @@ def worker(info):
         np.concatenate([pts_img[:2, :].T, depth[:, None]], axis=1).astype(np.float32).flatten().tofile(os.path.join('./data', 'depth_gt',f'{file_name}.bin'))
 
 if __name__ == '__main__':
-    po = Pool(32)
-    mmcv.mkdir_or_exist(os.path.join('./data', 'depth_gt'))
-    infos = mmcv.load(info_path_train)['infos']
-    for info in infos:
-        po.apply_async(func=worker, args=(info, ))
-    po.close()
-    po.join()
-    
-    # po2 = Pool(32)
-    # infos = mmcv.load(info_path_val)['infos']
+    # po = Pool(64)
+    # mmcv.mkdir_or_exist(os.path.join('./data', 'depth_gt'))
+    # infos = mmcv.load(info_path_train)['infos']
     # for info in infos:
-    #     po2.apply_async(func=worker, args=(info, ))
-    # po2.close()
-    # po2.join()
+    #     po.apply_async(func=worker, args=(info, ))
+    # po.close()
+    # po.join()
+    
+    po2 = Pool(128)
+    infos = mmcv.load(info_path_val)['infos']
+    for info in infos:
+        po2.apply_async(func=worker, args=(info, ))
+    po2.close()
+    po2.join()
