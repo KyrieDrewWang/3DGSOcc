@@ -35,6 +35,12 @@ git commit id
 based on 1.6
 the sem_loss_rendered are not averaged on viewpoints
 ======v1.8
-git commit id 
+git commit id f187d2edfb576fc63ef185a63778c87e32b2c241
+based on 1.7
+auxilary frames are used [-1,1,2]
+======v1.9
+git commit id ea405d088f9c4833ea4981ec32e43538d9ca116f
 based on 1.4
 auxilary frames are used [-1,1,2]
+the other parameters of the splatting reandering are set require_grad=True
+======v2.0
