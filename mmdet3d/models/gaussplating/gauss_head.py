@@ -50,20 +50,29 @@ class GausSplatingHead(nn.Module):
         self.z_lim_num=z_lim_num
         # parameters for splatting rasterizing
         pc_xyz = self.get_presudo_xyz()
-        # self.pc_xyz = pc_xyz.requires_grad_(False)
-        self.pc_xyz = nn.Parameter(pc_xyz)
+        self.pc_xyz = pc_xyz.requires_grad_(False)
+        # self.pc_xyz = nn.Parameter(pc_xyz)
         dist = torch.clamp_min(distCUDA2(self.get_presudo_xyz()), 0.0000001)
         scales = torch.log(torch.sqrt(dist))[...,None].repeat(1, 3)
-        # self.scales = scales.requires_grad_(False)
-        self.scales = nn.Parameter(scales)
+        self.scales = scales.requires_grad_(False)
+        # self.scales = nn.Parameter(scales)
         rots = torch.zeros((pc_xyz.shape[0], 4))
         rots[:, 0] = 1        
-        # self.rots = rots.requires_grad_(False)
-        self.rots = nn.Parameter(rots)
+        self.rots = rots.requires_grad_(False)
+        # self.rots = nn.Parameter(rots)
         self.scale_act = torch.exp
         self.rot_act = torch.nn.functional.normalize
         self.render_image_height=render_img_shape[0]
         self.render_image_width=render_img_shape[1]
+        self.sam_proj = torch.nn.Sequential(
+            torch.nn.Linear(256, 64, bias=True),
+            torch.nn.LayerNorm(64),
+            torch.nn.LeakyReLU(),
+            torch.nn.Linear(64, 64, bias=True),
+            torch.nn.LayerNorm(64),
+            torch.nn.LeakyReLU(),
+            torch.nn.Linear(64, voxel_feature_dim, bias=True)
+        )
         # self.splatting_semantic_mlp = nn.Sequential(
         #     nn.Linear(self.voxel_feature_dim, self.voxel_feature_dim*2),
         #     nn.Softplus(),
@@ -104,9 +113,9 @@ class GausSplatingHead(nn.Module):
             view_points = [c[batch_id] for c in cameras[:-2]]
             vox_feature_i = voxel_feats[batch_id]
             opacity_i = opacity[batch_id]  
-            # sam_embd_batch_id = cameras[-3][batch_id]
-            gt_sem_batch_id = cameras[-2][batch_id]
-            sem_label_mask_batch_id  = cameras[-1][batch_id]
+            sam_embd_batch_id = cameras[-3][batch_id]
+            # gt_sem_batch_id = cameras[-2][batch_id]
+            # sem_label_mask_batch_id  = cameras[-1][batch_id]
             opacity_i = opacity_i.reshape(-1,1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_sem_c_id = 0
@@ -127,20 +136,21 @@ class GausSplatingHead(nn.Module):
                 # rendered_semantic_map = self.splatting_semantic_mlp(rendered_feature_map.permute(1,2,0))
                 rendered_semantic_map = rendered_feature_map.permute(1,2,0)
                 # print(rendered_semantic_map.shape)
-                rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
-                sem_label_mask = sem_label_mask_batch_id[c_id]
-                sem_label_mask = F.resize(sem_label_mask.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
-                sem_label_mask = sem_label_mask.reshape(-1).bool()
-                gt_sem = gt_sem_batch_id[c_id]   
-                gt_sem = F.resize(gt_sem.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
-                gt_sem = gt_sem.reshape(-1).long()
-                # mask by the projected labels
-                rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
-                rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
-                gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
-                loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
-                # sam_embd = sam_embd_batch_id[c_id]
-                # loss_sem_id = l1_loss(rendered_feature_map, sam_embd)
+                # rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
+                # sem_label_mask = sem_label_mask_batch_id[c_id]
+                # sem_label_mask = F.resize(sem_label_mask.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
+                # sem_label_mask = sem_label_mask.reshape(-1).bool()
+                # gt_sem = gt_sem_batch_id[c_id]   
+                # gt_sem = F.resize(gt_sem.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
+                # gt_sem = gt_sem.reshape(-1).long()
+                # # mask by the projected labels
+                # rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
+                # rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
+                # gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
+                # loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
+                sam_embd = sam_embd_batch_id[c_id].permute(1,2,0)
+                sam_embd_down = self.sam_proj(sam_embd)
+                loss_sem_id = l1_loss(rendered_semantic_map, sam_embd_down)
                 loss_sem_c_id = loss_sem_c_id + loss_sem_id
             loss_sem_c_id = loss_sem_c_id / view_points[0].shape[0]
             loss_sem_batch = loss_sem_batch + loss_sem_c_id
