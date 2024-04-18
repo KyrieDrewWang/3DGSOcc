@@ -1,5 +1,5 @@
 _base_ = ['./bevstereo-occ.py']
-render_img_shape=(450, 800)
+render_img_shape=(480, 800)
 model = dict(
     type='SplattingOcc',
     final_softplus=True,

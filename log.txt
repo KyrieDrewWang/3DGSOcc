@@ -34,4 +34,7 @@ the opacity is generated using opacity head
 git commit id
 based on 1.6
 the sem_loss_rendered are not averaged on viewpoints
-and [1,-1] frames are included to add more supervision
+======v1.8
+git commit id 
+based on 1.4
+auxilary frames are used [-1,1,2]

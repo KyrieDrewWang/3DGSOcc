@@ -5,7 +5,7 @@ import numpy as np
 from scipy.spatial import KDTree
 from torch.autograd import Variable
 from torchvision.transforms import functional as F
-
+import cv2
 nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476,  243808, 2457947, 497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031,141625221, 2307405309])
 
 
@@ -15,6 +15,9 @@ def distCUDA2(points):
     meanDists = (dists[:, 1:] ** 2).mean(1)
     return torch.tensor(meanDists, dtype=points.dtype, device=points.device)
 
+
+def l1_loss(network_output, gt):
+    return torch.abs((network_output - gt)).mean()
 
 from mmdet.models import HEADS
 @HEADS.register_module()
@@ -47,13 +50,16 @@ class GausSplatingHead(nn.Module):
         self.z_lim_num=z_lim_num
         # parameters for splatting rasterizing
         pc_xyz = self.get_presudo_xyz()
-        self.pc_xyz = pc_xyz.requires_grad_(False)
+        # self.pc_xyz = pc_xyz.requires_grad_(False)
+        self.pc_xyz = nn.Parameter(pc_xyz)
         dist = torch.clamp_min(distCUDA2(self.get_presudo_xyz()), 0.0000001)
         scales = torch.log(torch.sqrt(dist))[...,None].repeat(1, 3)
-        self.scales = scales.requires_grad_(False)
+        # self.scales = scales.requires_grad_(False)
+        self.scales = nn.Parameter(scales)
         rots = torch.zeros((pc_xyz.shape[0], 4))
         rots[:, 0] = 1        
-        self.rots = rots.requires_grad_(False)
+        # self.rots = rots.requires_grad_(False)
+        self.rots = nn.Parameter(rots)
         self.scale_act = torch.exp
         self.rot_act = torch.nn.functional.normalize
         self.render_image_height=render_img_shape[0]
@@ -69,7 +75,7 @@ class GausSplatingHead(nn.Module):
             self.class_weights = torch.ones(17)/17    
         self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="mean")
         self.gaussian_sem_weight=gaussian_sem_weight
-    
+
     def get_presudo_xyz(self):
         x_lim_num, y_lim_num, z_lim_num = self.x_lim_num, self.y_lim_num, self.z_lim_num
         
@@ -98,6 +104,7 @@ class GausSplatingHead(nn.Module):
             view_points = [c[batch_id] for c in cameras[:-2]]
             vox_feature_i = voxel_feats[batch_id]
             opacity_i = opacity[batch_id]  
+            # sam_embd_batch_id = cameras[-3][batch_id]
             gt_sem_batch_id = cameras[-2][batch_id]
             sem_label_mask_batch_id  = cameras[-1][batch_id]
             opacity_i = opacity_i.reshape(-1,1)
@@ -132,6 +139,8 @@ class GausSplatingHead(nn.Module):
                 rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
                 gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
                 loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
+                # sam_embd = sam_embd_batch_id[c_id]
+                # loss_sem_id = l1_loss(rendered_feature_map, sam_embd)
                 loss_sem_c_id = loss_sem_c_id + loss_sem_id
             loss_sem_c_id = loss_sem_c_id / view_points[0].shape[0]
             loss_sem_batch = loss_sem_batch + loss_sem_c_id
