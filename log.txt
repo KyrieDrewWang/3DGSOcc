@@ -44,3 +44,7 @@ based on 1.4
 auxilary frames are used [-1,1,2]
 the other parameters of the splatting reandering are set require_grad=True
 ======v2.0
+git commit id 163504bca52dffd4251a58e41a6d18ee2dea39aa
+based on 1.4
+auxilary frames are used [-2, -1, 1, 1, 2]
+the semantic rendering maps are supervised by SAM emddings
