@@ -20,4 +20,5 @@
 #     --launcher pytorch \
 #     --dump_dir results \
 #     ${@:4}
-CUDA_VISIBLE_DEVICES=8,4,5,6 python -m torch.distributed.launch --nproc_per_node=4 --master_port=8091 tools/test.py configs/renderocc/splattingocc-Nframe.py /data/wc/RenderOcc/socc_workdir/latest.pth --launcher pytorch --eval segm --gpu-collect #--tmpdir /home/wc/results/tmp  --dump_dir /home/wc/results 
+# CUDA_VISIBLE_DEVICES=0 python -m pdb torch.distributed.launch --nproc_per_node=1 --master_port=8091 tools/test.py configs/renderocc/splattingocc-Nframe.py /data/wc/RenderOcc/socc_workdir/latest.pth --launcher pytorch --eval segm --gpu-collect #--tmpdir /home/wc/results/tmp  --dump_dir /home/wc/results 
+CUDA_VISIBLE_DEVICES=0 python tools/test.py configs/renderocc/splattingocc-Nframe.py ckpts/latest.pth --eval segm --gpu-collect

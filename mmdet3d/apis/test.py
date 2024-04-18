@@ -13,12 +13,14 @@ import torch
 import torch.distributed as dist
 from mmcv.runner import get_dist_info
 
-def single_gpu_test(model, data_loader, dump=False):
+def single_gpu_test(model, data_loader, dump=False, test_num=10):
     model.eval()
     results = []
     dataset = data_loader.dataset
     prog_bar = mmcv.ProgressBar(len(dataset))
-    for data in data_loader:
+    for i, data in enumerate(data_loader):
+        if i >= test_num and test_num != 0:
+            break   
         # import ipdb;ipdb.set_trace()
         with torch.no_grad():
             result = model(return_loss=False, rescale=True, **data)

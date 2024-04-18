@@ -79,7 +79,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 wrs_use_batch=False,
                 znear=0.01, 
                 zfar=40,
-                render_img_shape=None,
+                render_img_shape=(450, 800),
                 **kwargs):
         super().__init__(**kwargs)
         self.use_rays = use_rays
@@ -96,6 +96,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
             self.WRS_balance_weight = torch.exp(0.005 * (nusc_class_nums.max() / nusc_class_nums - 1))
 
         self.dynamic_class = torch.tensor(dynamic_class)
+        # print("render_img_shape", render_img_shape)
         self.render_image_height = render_img_shape[0]
         self.render_image_width = render_img_shape[1]  
 
