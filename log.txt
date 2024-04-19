@@ -47,4 +47,10 @@ the other parameters of the splatting reandering are set require_grad=True
 git commit id 163504bca52dffd4251a58e41a6d18ee2dea39aa
 based on 1.4
 auxilary frames are used [-2, -1, 1, 1, 2]
-the semantic rendering maps are supervised by SAM emddings
+the semantic rendering maps are supervised by SAM emddings (256, 64,64) after going through the MLP layer to adjust the channels.
+======v2.1
+git commit id 
+baed on 2.0
+auxilary frames are used [-2, 2]
+the rendered image shapes are changed to [225, 400] and the SAM embddings are interpolated to the same size.
+

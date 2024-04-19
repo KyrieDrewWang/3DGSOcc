@@ -148,7 +148,9 @@ class GausSplatingHead(nn.Module):
                 # rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
                 # gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
                 # loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
-                sam_embd = sam_embd_batch_id[c_id].permute(1,2,0)
+                
+                sam_embd_full = torch.nn.functional.interpolate(sam_embd_batch_id[c_id].unsqueeze(0), size=rendered_feature_map.shape[1:]).squeeze()
+                sam_embd = sam_embd_full.permute(1,2,0)
                 sam_embd_down = self.sam_proj(sam_embd)
                 loss_sem_id = l1_loss(rendered_semantic_map, sam_embd_down)
                 loss_sem_c_id = loss_sem_c_id + loss_sem_id

@@ -1,5 +1,5 @@
 _base_ = ['./bevstereo-occ.py']
-render_img_shape=(36, 64)
+render_img_shape=(225, 400)
 model = dict(
     type='SplattingOcc',
     final_softplus=True,
@@ -33,8 +33,8 @@ data = dict(
         use_camera=True,
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
-        # aux_frames=[-1,1,2],
-        aux_frames=[-3,-2,-1,1,2,3],
+        aux_frames=[-2,2],
+        # aux_frames=[-3,-2,-1,1,2,3],
         max_ray_nums=38400,
         znear=0.01, 
         zfar=40,

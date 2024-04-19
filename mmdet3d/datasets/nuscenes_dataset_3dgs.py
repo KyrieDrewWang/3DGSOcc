@@ -79,7 +79,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 wrs_use_batch=False,
                 znear=0.01, 
                 zfar=40,
-                render_img_shape=(450, 800),
+                render_img_shape=(225, 400),
                 **kwargs):
         super().__init__(**kwargs)
         self.use_rays = use_rays
