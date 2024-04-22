@@ -136,8 +136,8 @@ class SplattingOcc(BEVStereo4DOCC):
                       **kwargs):
         # extract volumn feature
         img_inputs = self.prepare_inputs(img_inputs, stereo=True)
-        # imgs, sensor2keyegos, ego2globals, intrins, post_rots, post_trans, \
-        #         bda, curr2adjsensor = img_inputs
+        imgs, sensor2keyegos, ego2globals, intrins, post_rots, post_trans, \
+                bda, curr2adjsensor = img_inputs
         img_feats, depth = self.extract_img_feat(img_inputs, img_metas, **kwargs)
         voxel_feats = self.final_conv(img_feats[0]).permute(0, 4, 3, 2, 1) # bncdhw->bnwhdc
         # fake_loss = voxel_feats - torch.rand_like(voxel_feats)
@@ -157,7 +157,7 @@ class SplattingOcc(BEVStereo4DOCC):
             losses.update(loss_occ)
         
         if self.gaussplating_head:
-            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density)
+            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density, imgs)
             losses.update(loss_gaussian)
             
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)

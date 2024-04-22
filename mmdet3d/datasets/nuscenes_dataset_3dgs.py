@@ -80,8 +80,11 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 znear=0.01, 
                 zfar=40,
                 render_img_shape=(225, 400),
+                use_sam=False,
+                img_input=False,
                 **kwargs):
         super().__init__(**kwargs)
+        self.img_input = img_input
         self.use_rays = use_rays
         self.use_camera = use_camera
         self.semantic_gt_path = semantic_gt_path
@@ -90,6 +93,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         self.max_ray_nums = max_ray_nums
         self.znear=znear
         self.zfar = zfar
+        self.use_sam = use_sam
         if wrs_use_batch:   # compute with batch data
             self.WRS_balance_weight = None
         else:               # compute with total dataset
@@ -200,7 +204,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         P[2, 3] = -(zfar * znear) / (zfar - znear)
         return P
 
-    def cameras(self, time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks, SAM_embs):
+    def cameras(self, time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks, SAM_embs, view_imgs):
         FoVx_lst = []
         FoVy_lst = []
         world_view_transform_lst = []
@@ -236,7 +240,8 @@ class NuScenesDataset3DGS(NuScenesDataset):
         label_masks = torch.stack(label_masks)
         # label_depths = torch.stack(label_depths)
         SAM_embs = torch.stack(SAM_embs)
-        return (FoVx, FoVy, world_view_transform, full_proj_transform, camera_center, SAM_embs, label_segs, label_masks)
+        view_imgs = np.stack(view_imgs)
+        return (FoVx, FoVy, world_view_transform, full_proj_transform, camera_center, SAM_embs, view_imgs, label_segs, label_masks)
         
         
     def get_viewpoints(self, index):
@@ -250,6 +255,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         label_segs = []
         label_masks = []
         SAM_embs = []
+        view_imgs = []
         idx = 0
         
         for time_id in [0] + self.aux_frames:
@@ -265,10 +271,18 @@ class NuScenesDataset3DGS(NuScenesDataset):
 
                 # load seg/depth GT of rays
                 seg_map = load_seg_label(img_file_path, self.semantic_gt_path)
+                if self.use_sam:
+                    SAM_f_path = img_file_path.replace("samples", "SAM_embeddings").replace(".jpg", "_fmap_CxHxW.pt")
+                    SAM_emb = torch.load(SAM_f_path)
+                    # SAM_emb = SAM_emb.permute(1,2,0)
+                else:
+                    SAM_emb=torch.zeros((1))
 
-                SAM_f_path = img_file_path.replace("samples", "SAM_embeddings").replace(".jpg", "_fmap_CxHxW.pt")
-                SAM_emb = torch.load(SAM_f_path)
-                # SAM_emb = SAM_emb.permute(1,2,0)
+                if self.img_input:
+                    v_img = cv2.imread(img_file_path)
+                else:
+                    v_img=torch.zeros((1))
+
                 coor, label_depth = load_depth(img_file_path, self.depth_gt_path)
                 mask = np.zeros_like(seg_map)
                 mask[coor[:,1], coor[:,0]] = 1
@@ -280,6 +294,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 label_segs.append(torch.Tensor(seg_map))
                 label_masks.append(torch.Tensor(mask))
                 SAM_embs.append(SAM_emb)
+                view_imgs.append(v_img)
                 time_ids[time_id].append(idx)
                 idx += 1
         T, N = len(self.aux_frames)+1, len(info['cams'].keys())  # number of frame and cameras
@@ -294,7 +309,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         sensor2keyegos = global2keyego @ ego2globals.double() @ sensor2egos.double()  # as for sensor2egos[0, :, ...]
         sensor2keyegos = sensor2keyegos.float()
         sensor2keyegos = sensor2keyegos.view(T*N, 4, 4)
-        cameras = self.cameras(time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks, SAM_embs)
+        cameras = self.cameras(time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks, SAM_embs,view_imgs)
         return cameras
 
     def get_data_info(self, index):
