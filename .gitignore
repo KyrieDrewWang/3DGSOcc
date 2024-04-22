@@ -11,3 +11,4 @@ splattingocc_workdir/
 socc_workdir
 pyrightconfig.json
 **/*.so
+/DATA

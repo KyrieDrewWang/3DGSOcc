@@ -4,7 +4,7 @@ spconv
 lyft_dataset_sdk
 networkx==2.2
 numba==0.53.0
-numpy
+numpy==1.23.5
 nuscenes-devkit
 plyfile
 scikit-image
@@ -20,3 +20,4 @@ protobuf==3.9.2
 torch_scatter
 fvcore
 torch_efficient_distloss
+trimesh
