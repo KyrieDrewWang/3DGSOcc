@@ -42,7 +42,7 @@ data = dict(
         zfar=40,
         render_img_shape=render_img_shape,
         use_sam=use_sam,
-        img_input=True,
+        gen_sam=True,
     )
 )
 

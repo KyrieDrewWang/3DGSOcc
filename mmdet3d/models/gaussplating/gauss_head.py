@@ -7,10 +7,7 @@ from torch.autograd import Variable
 from torchvision.transforms import functional as F
 import cv2
 nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476,  243808, 2457947, 497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031,141625221, 2307405309])
-import sys
-sys.path.append('tools/sam_encoder/')
-from segment_anything import (SamAutomaticMaskGenerator, SamPredictor,
-                              sam_model_registry)
+
 
 def distCUDA2(points):
     points_np = points.float().numpy()
@@ -90,14 +87,6 @@ class GausSplatingHead(nn.Module):
         self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="mean")
         self.gaussian_sem_weight=gaussian_sem_weight
 
-        sam = sam_model_registry["vit_h"]("ckpts/sam_vit_h_4b8939.pth").to('cuda')
-        self.SAM_encoder = SamPredictor(sam)
-        self.SAM_decoder = SamAutomaticMaskGenerator(
-        sam, 
-        pred_iou_thresh = 0.88, 
-        stability_score_thresh = 0.95, 
-        min_mask_region_area = 0
-    )
     def get_presudo_xyz(self):
         x_lim_num, y_lim_num, z_lim_num = self.x_lim_num, self.y_lim_num, self.z_lim_num
         
@@ -129,7 +118,7 @@ class GausSplatingHead(nn.Module):
             sam_embd_batch_id = cameras[-4][batch_id]
             # gt_sem_batch_id = cameras[-2][batch_id]
             # sem_label_mask_batch_id  = cameras[-1][batch_id]
-            view_imgs = cameras[-3][batch_id]
+            sam_mask_batch_id = cameras[-3][batch_id]
             opacity_i = opacity_i.reshape(-1,1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_sem_c_id = 0
@@ -169,20 +158,9 @@ class GausSplatingHead(nn.Module):
                     sam_embd_down = self.sam_proj(sam_embd)
                     loss_sem_id = l1_loss(rendered_semantic_map, sam_embd_down)
                     loss_sem_c_id = loss_sem_c_id + loss_sem_id
-                v_img = view_imgs[c_id]
-                with torch.no_grad():
-                    img4feature = cv2.resize(v_img.cpu().numpy(), dsize=(1024,1024),fx=1,fy=1,interpolation=cv2.INTER_LINEAR)
-                    self.SAM_encoder.set_image(img4feature)
-                    sam_features = self.SAM_encoder.features
-                    sam_masks = self.SAM_decoder.generate(v_img.cpu().numpy())
-                    mask_list = []
-                    for m in sam_masks:
-                        m_score = torch.from_numpy(m['segmentation']).float()[None, None, :, :].to('cuda')
-                        m_score = torch.nn.functional.interpolate(m_score, size=(200,200) , mode='bilinear', align_corners=False).squeeze()
-                        m_score[m_score >= 0.5] = 1
-                        m_score[m_score != 1] = 0
-                        mask_list.append(m_score)
-                    sam_masks = torch.stack(mask_list, dim=0)
+                
+                sam_features = sam_embd_batch_id[c_id]
+                sam_masks = sam_mask_batch_id[c_id]
                 H,W = sam_features.shape[-2:]
                 low_dim_sam_features = self.sam_proj(sam_features.reshape(-1, H*W).permute([1,0])).permute([1,0]).reshape(self.voxel_feature_dim, H, W)
 

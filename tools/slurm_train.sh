@@ -22,7 +22,7 @@ CONFIG=configs/renderocc/splattingocc-Nframe.py
 WORK_DIR=socc_workdir
 GPUS=2
 GPUS_PER_NODE=2
-CPUS_PER_TASK=16
+CPUS_PER_TASK=4
 
 srun -p ${PARTITION} \
     --job-name=${JOB_NAME} \

@@ -12,6 +12,11 @@ from .builder import DATASETS
 from .nuscenes_dataset import NuScenesDataset
 from .occ_metrics import Metric_mIoU, Metric_FScore
 from .ray import generate_rays
+import sys
+sys.path.append('tools/sam_encoder/')
+from segment_anything import (SamAutomaticMaskGenerator, SamPredictor,
+                              sam_model_registry)
+
 
 nusc_class_nums = torch.Tensor([
     2854504, 7291443, 141614, 4239939, 32248552, 
@@ -81,10 +86,10 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 zfar=40,
                 render_img_shape=(225, 400),
                 use_sam=False,
-                img_input=False,
+                gen_sam=False,
                 **kwargs):
         super().__init__(**kwargs)
-        self.img_input = img_input
+        self.gen_sam = gen_sam
         self.use_rays = use_rays
         self.use_camera = use_camera
         self.semantic_gt_path = semantic_gt_path
@@ -103,6 +108,14 @@ class NuScenesDataset3DGS(NuScenesDataset):
         # print("render_img_shape", render_img_shape)
         self.render_image_height = render_img_shape[0]
         self.render_image_width = render_img_shape[1]  
+        if gen_sam:
+            sam = sam_model_registry["vit_h"]("ckpts/sam_vit_h_4b8939.pth").to('cuda')
+            self.SAM_encoder = SamPredictor(sam)
+            self.SAM_decoder = SamAutomaticMaskGenerator(
+            sam, 
+            pred_iou_thresh = 0.88, 
+            stability_score_thresh = 0.95, 
+            min_mask_region_area = 0)
 
     def get_rays(self, index):
         info = self.data_infos[index]
@@ -204,7 +217,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         P[2, 3] = -(zfar * znear) / (zfar - znear)
         return P
 
-    def cameras(self, time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks, SAM_embs, view_imgs):
+    def cameras(self, time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks, SAM_embs, SAM_masks):
         FoVx_lst = []
         FoVy_lst = []
         world_view_transform_lst = []
@@ -240,8 +253,8 @@ class NuScenesDataset3DGS(NuScenesDataset):
         label_masks = torch.stack(label_masks)
         # label_depths = torch.stack(label_depths)
         SAM_embs = torch.stack(SAM_embs)
-        view_imgs = np.stack(view_imgs)
-        return (FoVx, FoVy, world_view_transform, full_proj_transform, camera_center, SAM_embs, view_imgs, label_segs, label_masks)
+        SAM_masks = torch.stack(SAM_masks)
+        return (FoVx, FoVy, world_view_transform, full_proj_transform, camera_center, SAM_embs, SAM_masks, label_segs, label_masks)
         
         
     def get_viewpoints(self, index):
@@ -255,7 +268,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         label_segs = []
         label_masks = []
         SAM_embs = []
-        view_imgs = []
+        SAM_masks = []
         idx = 0
         
         for time_id in [0] + self.aux_frames:
@@ -278,11 +291,24 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 else:
                     SAM_emb=torch.zeros((1))
 
-                if self.img_input:
+                if self.gen_sam:
                     v_img = cv2.imread(img_file_path)
+                    img4feature = cv2.resize(v_img, dsize=(1024,1024),fx=1,fy=1,interpolation=cv2.INTER_LINEAR)
+                    self.SAM_encoder.set_image(img4feature)
+                    SAM_emb = self.SAM_encoder.features
+                    sam_masks = self.SAM_decoder.generate(v_img)
+                    mask_list = []
+                    for m in sam_masks:
+                        m_score = torch.from_numpy(m['segmentation']).float()[None, None, :, :].to('cuda')
+                        m_score = torch.nn.functional.interpolate(m_score, size=(200,200) , mode='bilinear', align_corners=False).squeeze()
+                        m_score[m_score >= 0.5] = 1
+                        m_score[m_score != 1] = 0
+                        mask_list.append(m_score)
+                    SAM_mask = torch.stack(mask_list, dim=0)
+                    _ = SAM_mask.sum(dim=(1,2))
                 else:
-                    v_img=torch.zeros((1))
-
+                    SAM_emb=torch.zeros((1))
+                    SAM_mask=torch.zeros((1))
                 coor, label_depth = load_depth(img_file_path, self.depth_gt_path)
                 mask = np.zeros_like(seg_map)
                 mask[coor[:,1], coor[:,0]] = 1
@@ -294,7 +320,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 label_segs.append(torch.Tensor(seg_map))
                 label_masks.append(torch.Tensor(mask))
                 SAM_embs.append(SAM_emb)
-                view_imgs.append(v_img)
+                SAM_masks.append(SAM_mask)
                 time_ids[time_id].append(idx)
                 idx += 1
         T, N = len(self.aux_frames)+1, len(info['cams'].keys())  # number of frame and cameras
@@ -309,7 +335,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         sensor2keyegos = global2keyego @ ego2globals.double() @ sensor2egos.double()  # as for sensor2egos[0, :, ...]
         sensor2keyegos = sensor2keyegos.float()
         sensor2keyegos = sensor2keyegos.view(T*N, 4, 4)
-        cameras = self.cameras(time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks, SAM_embs,view_imgs)
+        cameras = self.cameras(time_ids, sensor2keyegos, intrins, label_segs, label_depths, label_masks, SAM_embs, SAM_masks)
         return cameras
 
     def get_data_info(self, index):
