@@ -12,10 +12,10 @@ if __name__ == '__main__':
     
     parser = ArgumentParser(description="SAM segment everything masks extracting params")
     
-    parser.add_argument("--image_root", default='data/flowers', type=str)
-    parser.add_argument("--sam_checkpoint_path", default="/data/wc/feature-3dgs/encoders/sam_encoder/checkpoints/sam_vit_h_4b8939.pth", type=str)
+    parser.add_argument("--image_root", default='data/nuscenes/samples/CAM_BACK', type=str)
+    parser.add_argument("--sam_checkpoint_path", default="ckpts/sam_vit_h_4b8939.pth", type=str)
     parser.add_argument("--sam_arch", default="vit_h", type=str)
-    parser.add_argument("--downsample", default="4", type=str)
+    # parser.add_argument("--downsample", default="4", type=str)
 
     args = parser.parse_args()
     
@@ -41,12 +41,13 @@ if __name__ == '__main__':
     #     crop_n_points_downscale_factor=2,
     #     min_mask_region_area=100,  # Requires open-cv to run post-processing
     # )
-    if args.downsample == "1":
-        IMAGE_DIR = os.path.join(args.image_root, 'images')
-    else:
-        IMAGE_DIR = os.path.join(args.image_root, 'images_'+args.downsample)
+    # if args.downsample == "1":
+    #     IMAGE_DIR = os.path.join(args.image_root, 'images')
+    # else:
+    #     IMAGE_DIR = os.path.join(args.image_root, 'images_'+args.downsample)
+    IMAGE_DIR = args.image_root
     assert os.path.exists(IMAGE_DIR) and "Please specify a valid image root"
-    OUTPUT_DIR = os.path.join(args.image_root, 'sam_masks')
+    OUTPUT_DIR = os.path.join("DATA", 'sam_masks')
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     print("Extracting SAM segment everything masks...")

@@ -12,8 +12,8 @@ if __name__ == '__main__':
     
     parser = ArgumentParser(description="SAM feature extracting params")
     
-    parser.add_argument("--image_root", default='./data/360_v2/garden/', type=str)
-    parser.add_argument("--sam_checkpoint_path", default="./dependencies/sam_ckpt/sam_vit_h_4b8939.pth", type=str)
+    parser.add_argument("--image_root", default='data/nuscenes/samples/CAM_BACK', type=str)
+    parser.add_argument("--sam_checkpoint_path", default="ckpts/sam_vit_h_4b8939.pth", type=str)
     parser.add_argument("--sam_arch", default="vit_h", type=str)
 
     args = parser.parse_args()
@@ -23,9 +23,10 @@ if __name__ == '__main__':
     sam = sam_model_registry[model_type](checkpoint=args.sam_checkpoint_path).to('cuda')
     predictor = SamPredictor(sam)
     
-    IMAGE_DIR = os.path.join(args.image_root, 'images')
+    # IMAGE_DIR = os.path.join(args.image_root, 'images')
+    IMAGE_DIR = args.image_root
     assert os.path.exists(IMAGE_DIR) and "Please specify a valid image root"
-    OUTPUT_DIR = os.path.join(args.image_root, 'features')
+    OUTPUT_DIR = os.path.join("DATA", 'SAM_features')
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     print("Extracting features...")
