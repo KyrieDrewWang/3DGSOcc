@@ -26,7 +26,7 @@ if __name__ == '__main__':
     # IMAGE_DIR = os.path.join(args.image_root, 'images')
     IMAGE_DIR = args.image_root
     assert os.path.exists(IMAGE_DIR) and "Please specify a valid image root"
-    OUTPUT_DIR = os.path.join("DATA", 'SAM_features')
+    OUTPUT_DIR = os.path.join("data/nuscenes", 'SAM_features')
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     print("Extracting features...")

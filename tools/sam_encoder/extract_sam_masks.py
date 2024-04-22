@@ -47,7 +47,7 @@ if __name__ == '__main__':
     #     IMAGE_DIR = os.path.join(args.image_root, 'images_'+args.downsample)
     IMAGE_DIR = args.image_root
     assert os.path.exists(IMAGE_DIR) and "Please specify a valid image root"
-    OUTPUT_DIR = os.path.join("DATA", 'sam_masks')
+    OUTPUT_DIR = os.path.join("data/nuscenes", 'sam_masks')
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     print("Extracting SAM segment everything masks...")
