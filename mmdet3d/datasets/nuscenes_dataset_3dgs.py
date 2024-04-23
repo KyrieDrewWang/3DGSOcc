@@ -2,6 +2,7 @@
 import os
 import time
 import mmcv
+import mmcv.parallel
 import torch
 import cv2
 import numpy as np
@@ -252,8 +253,8 @@ class NuScenesDataset3DGS(NuScenesDataset):
         label_segs = torch.stack(label_segs)
         label_masks = torch.stack(label_masks)
         # label_depths = torch.stack(label_depths)
-        SAM_embs = torch.stack(SAM_embs)
-        SAM_masks = torch.stack(SAM_masks)
+        SAM_embs = mmcv.parallel.DataContainer(SAM_embs)
+        SAM_masks = mmcv.parallel.DataContainer(SAM_masks)
         return (FoVx, FoVy, world_view_transform, full_proj_transform, camera_center, SAM_embs, SAM_masks, label_segs, label_masks)
         
         
@@ -294,18 +295,19 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 if self.gen_sam:
                     v_img = cv2.imread(img_file_path)
                     img4feature = cv2.resize(v_img, dsize=(1024,1024),fx=1,fy=1,interpolation=cv2.INTER_LINEAR)
-                    self.SAM_encoder.set_image(img4feature)
-                    SAM_emb = self.SAM_encoder.features
-                    sam_masks = self.SAM_decoder.generate(v_img)
-                    mask_list = []
-                    for m in sam_masks:
-                        m_score = torch.from_numpy(m['segmentation']).float()[None, None, :, :].to('cuda')
-                        m_score = torch.nn.functional.interpolate(m_score, size=(200,200) , mode='bilinear', align_corners=False).squeeze()
-                        m_score[m_score >= 0.5] = 1
-                        m_score[m_score != 1] = 0
-                        mask_list.append(m_score)
-                    SAM_mask = torch.stack(mask_list, dim=0)
-                    _ = SAM_mask.sum(dim=(1,2))
+                    with torch.no_grad():
+                        self.SAM_encoder.set_image(img4feature)
+                        SAM_emb = self.SAM_encoder.features
+                        sam_masks = self.SAM_decoder.generate(v_img)
+                        mask_list = []
+                        for m in sam_masks:
+                            m_score = torch.from_numpy(m['segmentation']).float()[None, None, :, :].to('cuda')
+                            m_score = torch.nn.functional.interpolate(m_score, size=(200,200) , mode='bilinear', align_corners=False).squeeze()
+                            m_score[m_score >= 0.5] = 1
+                            m_score[m_score != 1] = 0
+                            mask_list.append(m_score)
+                        SAM_mask = torch.stack(mask_list, dim=0)
+                        _ = SAM_mask.sum(dim=(1,2))
                 else:
                     SAM_emb=torch.zeros((1))
                     SAM_mask=torch.zeros((1))

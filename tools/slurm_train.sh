@@ -20,8 +20,8 @@ PARTITION=ai4bio
 JOB_NAME=occ_training
 CONFIG=configs/renderocc/splattingocc-Nframe.py
 WORK_DIR=socc_workdir
-GPUS=2
-GPUS_PER_NODE=2
+GPUS=4
+GPUS_PER_NODE=4
 CPUS_PER_TASK=4
 
 srun -p ${PARTITION} \

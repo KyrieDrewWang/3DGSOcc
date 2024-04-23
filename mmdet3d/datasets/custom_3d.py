@@ -432,16 +432,16 @@ class Custom3DDataset(Dataset):
         if self.test_mode:
             return self.prepare_test_data(idx)
         while True:
-            try:
-                data = self.prepare_train_data(idx)
-                if data is None:
-                    idx = self._rand_another(idx)
-                    continue
-                return data
-            except Exception as e:
-                print("data reading failed:", idx)
+            # try:
+            data = self.prepare_train_data(idx)
+            if data is None:
                 idx = self._rand_another(idx)
                 continue
+            return data
+            # except Exception as e:
+            #     print("data reading failed:", idx)
+            #     idx = self._rand_another(idx)
+            #     continue
                 
     def _set_group_flag(self):
         """Set flag according to image aspect ratio.

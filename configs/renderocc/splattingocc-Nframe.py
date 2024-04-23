@@ -29,7 +29,7 @@ semantic_gt_path = 'DATA/seg_gt_lidarseg'
 
 data = dict(
     samples_per_gpu=2,  # with 8 GPU, Batch Size=16 
-    workers_per_gpu=4,
+    workers_per_gpu=0,
     train=dict(
         use_rays=False,
         use_camera=True,
