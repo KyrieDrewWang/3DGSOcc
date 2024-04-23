@@ -246,10 +246,10 @@ custom_hooks = [
         init_updates=10560,
         priority='NORMAL',
     ),
-    # dict(
-    #     type='SyncbnControlHook',
-    #     syncbn_start_epoch=0,
-    # ),
+    dict(
+        type='SyncbnControlHook',
+        syncbn_start_epoch=0,
+    ),
 ]
 
 load_from="ckpts/bevdet-stbase-4d-stereo-512x1408-cbgs.pth"

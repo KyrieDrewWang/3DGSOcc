@@ -354,8 +354,6 @@ class NuScenesDataset3DGS(NuScenesDataset):
             input_dict['rays'] = torch.zeros((1))
         if self.use_camera:
             input_dict["camera_info"] = self.get_viewpoints(index)
-            if input_dict["camera_info"] is None:
-                return None
         else:
             input_dict['camera_info'] = torch.zeros((1))
         return input_dict

@@ -223,6 +223,8 @@ class Custom3DDataset(Dataset):
             dict: Training data dict of the corresponding index.
         """
         input_dict = self.get_data_info(index)
+        if input_dict["camera_info"] is None:
+            return None
         if input_dict is None:
             return None
         self.pre_pipeline(input_dict)
