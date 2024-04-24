@@ -28,7 +28,7 @@ depth_gt_path = 'DATA/depth_gt'
 semantic_gt_path = 'DATA/seg_gt_lidarseg'
 
 data = dict(
-    samples_per_gpu=4,  # with 8 GPU, Batch Size=16 
+    samples_per_gpu=2,  # with 8 GPU, Batch Size=16 
     workers_per_gpu=0,
     train=dict(
         use_rays=False,
