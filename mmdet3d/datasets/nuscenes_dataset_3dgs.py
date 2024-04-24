@@ -307,8 +307,8 @@ class NuScenesDataset3DGS(NuScenesDataset):
                             m_score[m_score != 1] = 0
                             mask_list.append(m_score)
                         SAM_mask = torch.stack(mask_list, dim=0)
-                        if len(SAM_mask.shape) < 3:
-                            return None
+                        # if len(SAM_mask.shape) < 3:
+                        #     SAM_mask = SAM_mask.unsqueeze(0)
                 else:
                     SAM_emb=torch.zeros((1))
                     SAM_mask=torch.zeros((1))
