@@ -167,7 +167,6 @@ class GausSplatingHead(nn.Module):
                 low_sam_masks = torch.nn.functional.interpolate(sam_masks.unsqueeze(0), size=sam_features.shape[-2:] , mode='nearest').squeeze()
                 if len(low_sam_masks.shape) < 3:
                     continue
-                    low_sam_masks = low_sam_masks.unsqueeze(0)
                 nonzero_masks = low_sam_masks.sum(dim=(1,2)) > 0
                 low_sam_masks = low_sam_masks[nonzero_masks,:,:]
                 full_resolution_sam_masks = sam_masks[nonzero_masks,:,:]

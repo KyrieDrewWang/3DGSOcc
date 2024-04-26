@@ -19,7 +19,7 @@ set -x
 PARTITION=ai4bio
 JOB_NAME=occ_training
 CONFIG=configs/renderocc/splattingocc-Nframe.py
-WORK_DIR=socc_workdir_2
+WORK_DIR=socc_workdir_3
 GPUS=2
 GPUS_PER_NODE=2
 CPUS_PER_TASK=4
