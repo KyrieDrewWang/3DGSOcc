@@ -14,4 +14,4 @@ pyrightconfig.json
 /DATA
 tools/sam_encoder/segment_anything.egg-info/
 *.out
-
+env.sh
