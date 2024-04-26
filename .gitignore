@@ -12,3 +12,6 @@ socc_workdir
 pyrightconfig.json
 **/*.so
 /DATA
+tools/sam_encoder/segment_anything.egg-info/
+*.out
+

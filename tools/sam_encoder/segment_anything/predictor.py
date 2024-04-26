@@ -90,7 +90,7 @@ class SamPredictor:
         input_image = self.model.preprocess(transformed_image)
         ###
         if features is None:
-            print("Using features encoded from input image!")
+            # print("Using features encoded from input image!")
             self.features = self.model.image_encoder(input_image)
         else:
             print("Using locally loaded features!")

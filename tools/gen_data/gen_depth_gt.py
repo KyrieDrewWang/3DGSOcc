@@ -75,8 +75,8 @@ def map_pointcloud_to_image(
 
 
 data_root = './data/nuscenes'
-info_path_train = './data/nuscenes/bevdetv2-nuscenes_infos_train.pkl'
-info_path_val = './data/nuscenes/bevdetv2-nuscenes_infos_val.pkl'
+info_path_train = 'data/nuscenes/bevdetv2-nuscenes_infos_train.pkl'
+info_path_val = 'data/nuscenes/bevdetv2-nuscenes_infos_val.pkl'
 
 # data3d_nusc = NuscMVDetData()
 
@@ -122,15 +122,15 @@ def worker(info):
 if __name__ == '__main__':
     # po = Pool(64)
     # mmcv.mkdir_or_exist(os.path.join('./data', 'depth_gt'))
-    # infos = mmcv.load(info_path_train)['infos']
+    infos = mmcv.load(info_path_train)['infos']
     # for info in infos:
     #     po.apply_async(func=worker, args=(info, ))
     # po.close()
     # po.join()
-    
-    po2 = Pool(128)
-    infos = mmcv.load(info_path_val)['infos']
-    for info in infos:
-        po2.apply_async(func=worker, args=(info, ))
-    po2.close()
-    po2.join()
+    print("")
+    # po2 = Pool(128)
+    # infos = mmcv.load(info_path_val)['infos']
+    # for info in infos:
+    #     po2.apply_async(func=worker, args=(info, ))
+    # po2.close()
+    # po2.join()

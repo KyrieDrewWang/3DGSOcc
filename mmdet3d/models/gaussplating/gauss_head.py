@@ -35,8 +35,12 @@ class GausSplatingHead(nn.Module):
                  x_lim_num=200, 
                  y_lim_num=200, 
                  z_lim_num=16,
+                 use_sam=False,
+                 use_sam_mask=False
                  ) -> None:
         super().__init__()
+        self.use_sam_mask = use_sam_mask
+        self.use_sam = use_sam
         self.voxel_size = voxel_size
         self.use_depth_sup = use_depth_sup
         self.xyz_min = torch.Tensor(point_cloud_range[:3])
@@ -64,15 +68,16 @@ class GausSplatingHead(nn.Module):
         self.rot_act = torch.nn.functional.normalize
         self.render_image_height=render_img_shape[0]
         self.render_image_width=render_img_shape[1]
-        self.sam_proj = torch.nn.Sequential(
-            torch.nn.Linear(256, 64, bias=True),
-            torch.nn.LayerNorm(64),
-            torch.nn.LeakyReLU(),
-            torch.nn.Linear(64, 64, bias=True),
-            torch.nn.LayerNorm(64),
-            torch.nn.LeakyReLU(),
-            torch.nn.Linear(64, voxel_feature_dim, bias=True)
-        )
+        if use_sam:
+            self.sam_proj = torch.nn.Sequential(
+                torch.nn.Linear(256, 64, bias=True),
+                torch.nn.LayerNorm(64),
+                torch.nn.LeakyReLU(),
+                torch.nn.Linear(64, 64, bias=True),
+                torch.nn.LayerNorm(64),
+                torch.nn.LeakyReLU(),
+                torch.nn.Linear(64, voxel_feature_dim, bias=True)
+            )
         # self.splatting_semantic_mlp = nn.Sequential(
         #     nn.Linear(self.voxel_feature_dim, self.voxel_feature_dim*2),
         #     nn.Softplus(),
@@ -82,7 +87,7 @@ class GausSplatingHead(nn.Module):
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
         else:
             self.class_weights = torch.ones(17)/17    
-        self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="mean")
+        self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="sum")
         self.gaussian_sem_weight=gaussian_sem_weight
 
     def get_presudo_xyz(self):
@@ -107,18 +112,21 @@ class GausSplatingHead(nn.Module):
         voxel_points = torch.stack([X, Y, Z], dim=-1).reshape(-1, 3)
         return voxel_points
     
-    def forward(self, voxel_feats, cameras, opacity, **kwargs):
+    def forward(self, voxel_feats, cameras, opacity, imgs, **kwargs):
         loss_sem_batch = 0
         for batch_id in range(voxel_feats.shape[0]):
-            view_points = [c[batch_id] for c in cameras[:-2]]
+            view_points = [c[batch_id] for c in cameras[:-4]]
             vox_feature_i = voxel_feats[batch_id]
             opacity_i = opacity[batch_id]  
-            sam_embd_batch_id = cameras[-3][batch_id]
-            # gt_sem_batch_id = cameras[-2][batch_id]
-            # sem_label_mask_batch_id  = cameras[-1][batch_id]
+            sam_embd_batch_id = cameras[-4][batch_id]
+            gt_sem_batch_id = cameras[-2][batch_id]
+            sem_label_mask_batch_id  = cameras[-1][batch_id]
+            sam_mask_batch_id = cameras[-3][batch_id]
             opacity_i = opacity_i.reshape(-1,1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
+
             loss_sem_c_id = 0
+            num_label_points = 0
             for c_id in range(view_points[0].shape[0]):
                 view_point = [p[c_id] for p in view_points]
                 rendered_feature_map = render_feature_map(
@@ -133,28 +141,56 @@ class GausSplatingHead(nn.Module):
                     render_image_height=self.render_image_height,
                     render_image_width=self.render_image_width
                 )
-                # rendered_semantic_map = self.splatting_semantic_mlp(rendered_feature_map.permute(1,2,0))
                 rendered_semantic_map = rendered_feature_map.permute(1,2,0)
-                # print(rendered_semantic_map.shape)
-                # rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
-                # sem_label_mask = sem_label_mask_batch_id[c_id]
-                # sem_label_mask = F.resize(sem_label_mask.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
-                # sem_label_mask = sem_label_mask.reshape(-1).bool()
-                # gt_sem = gt_sem_batch_id[c_id]   
-                # gt_sem = F.resize(gt_sem.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
-                # gt_sem = gt_sem.reshape(-1).long()
-                # # mask by the projected labels
-                # rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
-                # rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
-                # gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
-                # loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
+                rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
+                sem_label_mask = sem_label_mask_batch_id[c_id]
+                sem_label_mask = F.resize(sem_label_mask.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
+                sem_label_mask = sem_label_mask.reshape(-1).bool()
+                gt_sem = gt_sem_batch_id[c_id]   
+                gt_sem = F.resize(gt_sem.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
+                gt_sem = gt_sem.reshape(-1).long()
+                # mask by the projected labels
+                rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
+                rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
+                gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
+                loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
+                num_label = len(sem_label_mask[sem_label_mask])
+                if self.use_sam:
+                    rendered_semantic_map = rendered_feature_map.permute(1,2,0)
+                    sam_embd_full = torch.nn.functional.interpolate(sam_embd_batch_id[c_id].unsqueeze(0), size=rendered_feature_map.shape[1:]).squeeze()
+                    sam_embd = sam_embd_full.permute(1,2,0)
+                    sam_embd_down = self.sam_proj(sam_embd)
+                    loss_sem_id = l1_loss(rendered_semantic_map, sam_embd_down)
+                    loss_sem_c_id = loss_sem_c_id + loss_sem_id
                 
-                sam_embd_full = torch.nn.functional.interpolate(sam_embd_batch_id[c_id].unsqueeze(0), size=rendered_feature_map.shape[1:]).squeeze()
-                sam_embd = sam_embd_full.permute(1,2,0)
-                sam_embd_down = self.sam_proj(sam_embd)
-                loss_sem_id = l1_loss(rendered_semantic_map, sam_embd_down)
+                if self.use_sam_mask:
+                    sam_features = sam_embd_batch_id[c_id]
+                    sam_masks = sam_mask_batch_id[c_id]
+                    H,W = sam_features.shape[-2:]
+                    low_dim_sam_features = self.sam_proj(sam_features.reshape(-1, H*W).permute([1,0])).permute([1,0]).reshape(self.voxel_feature_dim, H, W)
+
+                    low_sam_masks = torch.nn.functional.interpolate(sam_masks.unsqueeze(0), size=sam_features.shape[-2:] , mode='nearest').squeeze()
+                    if len(low_sam_masks.shape) < 3:
+                        continue
+                    nonzero_masks = low_sam_masks.sum(dim=(1,2)) > 0
+                    low_sam_masks = low_sam_masks[nonzero_masks,:,:]
+                    full_resolution_sam_masks = sam_masks[nonzero_masks,:,:]
+
+                    prototypes = (low_sam_masks.unsqueeze(1) * low_dim_sam_features).sum(dim = (2,3))
+                    prototypes /= low_sam_masks.sum(dim=(1,2)).unsqueeze(-1)
+
+                    pp = torch.einsum('NC, CHW -> NHW', prototypes, rendered_feature_map)
+                    prob = torch.sigmoid(pp)
+
+                    full_resolution_sam_masks = torch.nn.functional.interpolate(full_resolution_sam_masks.unsqueeze(0), size=prob.shape[-2:] , mode='bilinear').squeeze()
+                    full_resolution_sam_masks[full_resolution_sam_masks <= 0.5] = 0
+
+                    bce_contrastive_loss = full_resolution_sam_masks * torch.log(prob + 1e-8) + ((1 - full_resolution_sam_masks) * torch.log(1 - prob + 1e-8))
+                    loss_sem_id = -bce_contrastive_loss.mean()
+
+                num_label_points+=num_label
                 loss_sem_c_id = loss_sem_c_id + loss_sem_id
-            loss_sem_c_id = loss_sem_c_id / view_points[0].shape[0]
+            loss_sem_c_id = loss_sem_c_id / num_label_points
             loss_sem_batch = loss_sem_batch + loss_sem_c_id
         loss_sem = loss_sem_batch / voxel_feats.shape[0] * self.gaussian_sem_weight           
         return {"render_sem_loss": loss_sem}
