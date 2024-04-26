@@ -13,13 +13,13 @@
 #SBATCH --error=file_name       %指定错误文件输出
 #SBATCH --mail-type=ALL         %邮件提醒,可选:END,FAIL,ALL
 #SBATCH --mail-user=address     %通知邮箱地址
-
+#    --quotatype=auto \
 set -x
 
 PARTITION=ai4bio
 JOB_NAME=occ_training
 CONFIG=configs/renderocc/splattingocc-Nframe.py
-WORK_DIR=socc_workdir_3
+WORK_DIR=socc_base
 GPUS=2
 GPUS_PER_NODE=2
 CPUS_PER_TASK=4
@@ -32,5 +32,4 @@ srun -p ${PARTITION} \
     --ntasks-per-node=${GPUS_PER_NODE} \
     --cpus-per-task=${CPUS_PER_TASK} \
     --kill-on-bad-exit=1 \
-    --quotatype=auto \
     python -u tools/train.py ${CONFIG} --work-dir=${WORK_DIR} --launcher="slurm" 
