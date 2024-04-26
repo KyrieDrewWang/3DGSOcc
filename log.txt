@@ -54,3 +54,10 @@ baed on 2.0
 auxilary frames are used [-2, 2]
 the rendered image shapes are changed to [225, 400] and the SAM embddings are interpolated to the same size.
 
+-=-=-=-=-=-=-
+v3.1
+supervised by SAM mask
+v3.2
+supervised by SAM mask
+-=-=-=-=-=-=-
+

@@ -785,9 +785,9 @@ class LSSViewTransformerBEVDepth(LSSViewTransformer):
         depth_loss = F.binary_cross_entropy(
             depth_preds_new,
             depth_labels_new,
-            reduction='sum',
+            reduction='none',
         )
-        depth_loss = depth_loss / max(1.0, fg_mask.sum())
+        depth_loss = depth_loss.sum() / max(1.0, fg_mask.sum())
         return self.loss_depth_weight * depth_loss
 
     def forward(self, input, stereo_metas=None, depth_gt=None):

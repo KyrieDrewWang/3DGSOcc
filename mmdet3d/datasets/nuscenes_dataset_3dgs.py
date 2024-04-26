@@ -87,10 +87,10 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 zfar=40,
                 render_img_shape=(225, 400),
                 use_sam=False,
-                gen_sam=False,
+                use_sam_mask=False,
                 **kwargs):
         super().__init__(**kwargs)
-        self.gen_sam = gen_sam
+        self.use_sam_mask = use_sam_mask
         self.use_rays = use_rays
         self.use_camera = use_camera
         self.semantic_gt_path = semantic_gt_path
@@ -109,7 +109,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
         # print("render_img_shape", render_img_shape)
         self.render_image_height = render_img_shape[0]
         self.render_image_width = render_img_shape[1]  
-        if gen_sam:
+        if use_sam_mask:
             sam = sam_model_registry["vit_h"]("ckpts/sam_vit_h_4b8939.pth").to('cuda')
             self.SAM_encoder = SamPredictor(sam)
             self.SAM_decoder = SamAutomaticMaskGenerator(
@@ -292,7 +292,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 else:
                     SAM_emb=torch.zeros((1))
 
-                if self.gen_sam:
+                if self.use_sam_mask:
                     v_img = cv2.imread(img_file_path)
                     img4feature = cv2.resize(v_img, dsize=(1024,1024),fx=1,fy=1,interpolation=cv2.INTER_LINEAR)
                     with torch.no_grad():
