@@ -36,7 +36,7 @@ class GausSplatingHead(nn.Module):
                  y_lim_num=200, 
                  z_lim_num=16,
                  use_sam=False,
-                 use_sam_mask=False
+                 use_sam_mask=False,
                  ) -> None:
         super().__init__()
         self.use_sam_mask = use_sam_mask
@@ -155,21 +155,24 @@ class GausSplatingHead(nn.Module):
                 gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
                 loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
                 num_label = len(sem_label_mask[sem_label_mask])
+
                 if self.use_sam:
                     rendered_semantic_map = rendered_feature_map.permute(1,2,0)
-                    sam_embd_full = torch.nn.functional.interpolate(sam_embd_batch_id[c_id].unsqueeze(0), size=rendered_feature_map.shape[1:]).squeeze()
+                    sam_features = sam_embd_batch_id[c_id]
+                    H,W = sam_features.shape[-2:]
+                    sam_embd_full = torch.nn.functional.interpolate(sam_features, size=rendered_feature_map.shape[1:], mode='bilinear').squeeze()
                     sam_embd = sam_embd_full.permute(1,2,0)
                     sam_embd_down = self.sam_proj(sam_embd)
                     loss_sem_id = l1_loss(rendered_semantic_map, sam_embd_down)
-                    loss_sem_c_id = loss_sem_c_id + loss_sem_id
-                
+                    num_label=1
+
                 if self.use_sam_mask:
                     sam_features = sam_embd_batch_id[c_id]
                     sam_masks = sam_mask_batch_id[c_id]
                     H,W = sam_features.shape[-2:]
                     low_dim_sam_features = self.sam_proj(sam_features.reshape(-1, H*W).permute([1,0])).permute([1,0]).reshape(self.voxel_feature_dim, H, W)
 
-                    low_sam_masks = torch.nn.functional.interpolate(sam_masks.unsqueeze(0), size=sam_features.shape[-2:] , mode='nearest').squeeze()
+                    low_sam_masks = torch.nn.functional.interpolate(sam_masks.unsqueeze(0), size=sam_features.shape[-2:], mode='nearest').squeeze()
                     if len(low_sam_masks.shape) < 3:
                         continue
                     nonzero_masks = low_sam_masks.sum(dim=(1,2)) > 0

@@ -20,18 +20,18 @@ model = dict(
         z_lim_num=16,
         render_img_shape=render_img_shape,
         use_sam=use_sam,
-        use_sam_mask=use_sam_mask
+        use_sam_mask=use_sam_mask,
     ),
 )
 
 optimizer = dict(type='AdamW', lr=1e-4, weight_decay=1e-2)
 
-depth_gt_path = 'DATA/depth_gt'
-semantic_gt_path = 'DATA/seg_gt_lidarseg'
+depth_gt_path = 'data/nuscenes/depth_gt'
+semantic_gt_path = 'data/nuscenes/seg_gt_lidarseg'
 
 data = dict(
-    samples_per_gpu=4,  # with 8 GPU, Batch Size=16 
-    workers_per_gpu=4,
+    samples_per_gpu=2,  # with 8 GPU, Batch Size=16 
+    workers_per_gpu=0,
     train=dict(
         use_rays=False,
         use_camera=True,
@@ -41,7 +41,7 @@ data = dict(
         # aux_frames=[-3,-2,-1,1,2,3],
         max_ray_nums=38400,
         znear=0.01, 
-        zfar=100,
+        zfar=40,
         render_img_shape=render_img_shape,
         use_sam=use_sam,
         use_sam_mask=use_sam_mask,

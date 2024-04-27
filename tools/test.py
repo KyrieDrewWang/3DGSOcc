@@ -247,7 +247,7 @@ def main():
                                  args.dump_dir,
                                  args.tmpdir,
                                  args.gpu_collect,
-                                 test_num=100,
+                                 test_num=0,
                                 )
 
 

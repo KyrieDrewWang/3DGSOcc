@@ -15,3 +15,5 @@ pyrightconfig.json
 tools/sam_encoder/segment_anything.egg-info/
 *.out
 env.sh
+run.sh
+socc_*/

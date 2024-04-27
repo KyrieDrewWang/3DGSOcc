@@ -20,7 +20,7 @@ class SplattingOcc(BEVStereo4DOCC):
     def __init__(self,
                  out_dim=32,
                  num_classes=18,
-                 test_threshold=8.5,
+                 test_threshold=0.,
                  use_lss_depth_loss=True,
                  use_3d_loss=False,
                  balance_cls_weight=True,

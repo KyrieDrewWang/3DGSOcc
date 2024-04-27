@@ -286,7 +286,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 # load seg/depth GT of rays
                 seg_map = load_seg_label(img_file_path, self.semantic_gt_path)
                 if self.use_sam:
-                    SAM_f_path = img_file_path.replace("samples", "SAM_embeddings").replace(".jpg", "_fmap_CxHxW.pt")
+                    SAM_f_path = img_file_path.replace("samples", "SAM_features").replace(".jpg", ".pt")
                     SAM_emb = torch.load(SAM_f_path)
                     # SAM_emb = SAM_emb.permute(1,2,0)
                 else:
@@ -310,7 +310,7 @@ class NuScenesDataset3DGS(NuScenesDataset):
                         # if len(SAM_mask.shape) < 3:
                         #     SAM_mask = SAM_mask.unsqueeze(0)
                 else:
-                    SAM_emb=torch.zeros((1))
+                    # SAM_emb=torch.zeros((1))
                     SAM_mask=torch.zeros((1))
                 coor, label_depth = load_depth(img_file_path, self.depth_gt_path)
                 mask = np.zeros_like(seg_map)

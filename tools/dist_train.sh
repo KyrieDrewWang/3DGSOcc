@@ -17,4 +17,4 @@
 #     $CONFIG \
 #     --launcher pytorch ${@:3}
 # TORCH_DISTRIBUTED_DEBUG=DETAIL 
-python -m torch.distributed.launch --master_port=8077 --nproc_per_node=4 tools/train.py configs/renderocc/splattingocc-Nframe.py --launcher pytorch --work_dir socc_workdir
+python -m torch.distributed.launch --master_port=29511 --nproc_per_node=4 tools/train.py configs/renderocc/splattingocc-Nframe.py --launcher pytorch --work_dir socc_src_2

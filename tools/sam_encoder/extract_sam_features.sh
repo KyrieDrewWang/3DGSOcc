@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for dir in data/nuscenes/samples/CAM_FRONT_RIGHT # data/nuscenes/samples/CAM_BACK_LEFT data/nuscenes/samples/CAM_BACK_RIGHT
+for dir in data/nuscenes/samples/CAM_BACK_LEFT # data/nuscenes/samples/CAM_BACK_LEFT data/nuscenes/samples/CAM_BACK_RIGHT
 do
 echo "processing: ${dir##*/}"
 python \
