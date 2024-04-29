@@ -17,3 +17,4 @@ tools/sam_encoder/segment_anything.egg-info/
 env.sh
 run.sh
 socc_*/
+*.log
