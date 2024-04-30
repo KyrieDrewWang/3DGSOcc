@@ -1,4 +1,5 @@
-# for dir in data/nuscenes/samples/CAM_BACK data/nuscenes/samples/CAM_BACK_LEFT data/nuscenes/samples/CAM_BACK_RIGHT
+#!/bin/sh
+# for dir in data/nuscenes/samples/CAM_BACK data/nuscenes/samples/CAM_BACK_LEFT data/nuscenes/samples/CAM_BACK_RIGHT data/nuscenes/samples/CAM_FRONT data/nuscenes/samples/CAM_FRONT_LEFT data/nuscenes/samples/CAM_FRONT_RIGHT 
 # do
 # echo "processing: ${dir##*/}"
 # python \
@@ -7,7 +8,7 @@
 # --sam_arch vit_h \
 # --image_root ${dir}
 # done
-for dir in data/nuscenes/samples/CAM_FRONT data/nuscenes/samples/CAM_FRONT_LEFT data/nuscenes/samples/CAM_FRONT_RIGHT 
+for dir in data/nuscenes/samples/CAM_FRONT
 do
 echo "processing: ${dir##*/}"
 python \

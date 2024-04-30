@@ -1,12 +1,12 @@
 _base_ = ['./bevstereo-occ.py']
-render_img_shape=(480, 800)
+render_img_shape=(900, 1600)
 use_sam=False
 use_sam_mask=False
 model = dict(
     type='SplattingOcc',
     final_softplus=True,
     use_3d_loss=False,
-    use_lss_depth_loss=False,
+    use_lss_depth_loss=True,
     gauss_head=dict(
         type='GausSplatingHead',
         point_cloud_range= [-40, -40, -1, 40, 40, 5.4],
@@ -31,13 +31,13 @@ semantic_gt_path = 'data/nuscenes/seg_gt_lidarseg'
 
 data = dict(
     samples_per_gpu=2,  # with 8 GPU, Batch Size=16 
-    workers_per_gpu=0,
+    workers_per_gpu=8,
     train=dict(
         use_rays=False,
         use_camera=True,
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
-        aux_frames=[],
+        aux_frames=[-1],
         # aux_frames=[-3,-2,-1,1,2,3],
         max_ray_nums=38400,
         znear=0.01, 

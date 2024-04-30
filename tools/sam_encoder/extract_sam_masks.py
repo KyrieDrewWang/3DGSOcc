@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser.add_argument("--image_root", default='data/nuscenes/samples/CAM_BACK', type=str)
     parser.add_argument("--sam_checkpoint_path", default="ckpts/sam_vit_h_4b8939.pth", type=str)
     parser.add_argument("--sam_arch", default="vit_h", type=str)
+    parser.add_argument("--first_half", action="store_true",default=False)
     # parser.add_argument("--downsample", default="4", type=str)
 
     args = parser.parse_args()
@@ -47,11 +48,19 @@ if __name__ == '__main__':
     #     IMAGE_DIR = os.path.join(args.image_root, 'images_'+args.downsample)
     IMAGE_DIR = args.image_root
     assert os.path.exists(IMAGE_DIR) and "Please specify a valid image root"
-    OUTPUT_DIR = os.path.join("data/nuscenes", 'sam_masks')
+    OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(args.image_root)), 'SAM_mask', args.image_root.split('/')[-1])
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
+    pathes = os.listdir(IMAGE_DIR)
+    num = len(pathes)//2
+    first_half = args.first_half
+    if first_half:
+        pathes = pathes[:num]
+        print("processing the first half")
+    else:
+        pathes = pathes[num:]  
+        print("processing the second half")  
     print("Extracting SAM segment everything masks...")
-    for path in tqdm(os.listdir(IMAGE_DIR)):
+    for path in tqdm(pathes):
         name = path.split('.')[0]
         img = cv2.imread(os.path.join(IMAGE_DIR, path))
         masks = mask_generator.generate(img)

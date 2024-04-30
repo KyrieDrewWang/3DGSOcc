@@ -29,7 +29,7 @@ NODE_RANK=$3
 
 # master
 MASTER_ADDR=$4
-MASTER_PORT="29301"
+MASTER_PORT="28301"
 
 #JOB ID
 BATCH_JOB_ID=$5
@@ -38,7 +38,7 @@ BATCH_JOB_ID=$5
 echo "$NODE_RANK,$NODES,$NPROC_PER_NODE,$MASTER_ADDR,$BATCH_JOB_ID"
 OUTPUT_LOG="train_rank${NODE_RANK}_${BATCH_JOB_ID}.log"
 
-WORK_DIR="socc_aux"
+PTH_DIR="ckpts/latest1.2.pth"
 
 torchrun \
      --nnodes="${NODES}" \
@@ -46,7 +46,9 @@ torchrun \
      --nproc_per_node="${NPROC_PER_NODE}" \
      --master_addr="${MASTER_ADDR}" \
      --master_port="${MASTER_PORT}" \
-     tools/train.py \
-     "configs/renderocc/splattingocc-Nframe.py" \
+     tools/test.py \
+     configs/renderocc/splattingocc-Nframe.py \
+     $PTH_DIR \
      --launcher pytorch \
-     --work_dir $WORK_DIR >> "${OUTPUT_LOG}" 2>&1
+     --eval segm \
+     --gpu-collect >> "${OUTPUT_LOG}" 2>&1
