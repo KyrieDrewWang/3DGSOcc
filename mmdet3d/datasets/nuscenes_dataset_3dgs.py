@@ -293,25 +293,11 @@ class NuScenesDataset3DGS(NuScenesDataset):
                     SAM_emb=torch.zeros((1))
 
                 if self.use_sam_mask:
-                    v_img = cv2.imread(img_file_path)
-                    img4feature = cv2.resize(v_img, dsize=(1024,1024),fx=1,fy=1,interpolation=cv2.INTER_LINEAR)
-                    with torch.no_grad():
-                        self.SAM_encoder.set_image(img4feature)
-                        SAM_emb = self.SAM_encoder.features
-                        sam_masks = self.SAM_decoder.generate(v_img)
-                        mask_list = []
-                        for m in sam_masks:
-                            m_score = torch.from_numpy(m['segmentation']).float()[None, None, :, :].to('cuda')
-                            m_score = torch.nn.functional.interpolate(m_score, size=(200,200) , mode='bilinear', align_corners=False).squeeze()
-                            m_score[m_score >= 0.5] = 1
-                            m_score[m_score != 1] = 0
-                            mask_list.append(m_score)
-                        SAM_mask = torch.stack(mask_list, dim=0)
-                        # if len(SAM_mask.shape) < 3:
-                        #     SAM_mask = SAM_mask.unsqueeze(0)
+                    SAM_f_path = img_file_path.replace("samples", "SAM_mask").replace(".jpg", ".pt")
                 else:
                     # SAM_emb=torch.zeros((1))
                     SAM_mask=torch.zeros((1))
+
                 coor, label_depth = load_depth(img_file_path, self.depth_gt_path)
                 mask = np.zeros_like(seg_map)
                 mask[coor[:,1], coor[:,0]] = 1
