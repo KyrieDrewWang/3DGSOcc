@@ -38,7 +38,7 @@ BATCH_JOB_ID=$5
 echo "$NODE_RANK,$NODES,$NPROC_PER_NODE,$MASTER_ADDR,$BATCH_JOB_ID"
 OUTPUT_LOG="train_rank${NODE_RANK}_${BATCH_JOB_ID}.log"
 
-WORK_DIR="socc_aux"
+WORK_DIR="socc_sam_prompt_mask_corloss"
 
 torchrun \
      --nnodes="${NODES}" \

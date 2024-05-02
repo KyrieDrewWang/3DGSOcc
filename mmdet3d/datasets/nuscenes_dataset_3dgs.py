@@ -13,11 +13,8 @@ from .builder import DATASETS
 from .nuscenes_dataset import NuScenesDataset
 from .occ_metrics import Metric_mIoU, Metric_FScore
 from .ray import generate_rays
-import sys
-sys.path.append('tools/sam_encoder/')
-from segment_anything import (SamAutomaticMaskGenerator, SamPredictor,
-                              sam_model_registry)
 
+# torch.multiprocessing.set_start_method('spawn')
 
 nusc_class_nums = torch.Tensor([
     2854504, 7291443, 141614, 4239939, 32248552, 
@@ -109,14 +106,6 @@ class NuScenesDataset3DGS(NuScenesDataset):
         # print("render_img_shape", render_img_shape)
         self.render_image_height = render_img_shape[0]
         self.render_image_width = render_img_shape[1]  
-        if use_sam_mask:
-            sam = sam_model_registry["vit_h"]("ckpts/sam_vit_h_4b8939.pth").to('cuda')
-            self.SAM_encoder = SamPredictor(sam)
-            self.SAM_decoder = SamAutomaticMaskGenerator(
-            sam, 
-            pred_iou_thresh = 0.88, 
-            stability_score_thresh = 0.95, 
-            min_mask_region_area = 0)
 
     def get_rays(self, index):
         info = self.data_infos[index]
@@ -287,15 +276,16 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 seg_map = load_seg_label(img_file_path, self.semantic_gt_path)
                 if self.use_sam:
                     SAM_f_path = img_file_path.replace("samples", "SAM_features").replace(".jpg", ".pt")
-                    SAM_emb = torch.load(SAM_f_path)
-                    # SAM_emb = SAM_emb.permute(1,2,0)
+                    SAM_emb = torch.load(SAM_f_path, map_location=torch.device('cpu'))
                 else:
                     SAM_emb=torch.zeros((1))
 
                 if self.use_sam_mask:
-                    SAM_f_path = img_file_path.replace("samples", "SAM_mask").replace(".jpg", ".pt")
+                    SAM_f_path = img_file_path.replace("samples", "SAM_features_").replace(".jpg", ".pt")
+                    SAM_emb = torch.load(SAM_f_path, map_location=torch.device('cpu')).float()
+                    SAM_m_path = img_file_path.replace("samples", "SAM_prompt_mask").replace(".jpg", ".pt")
+                    SAM_mask=torch.load(SAM_m_path, map_location=torch.device('cpu')).float()
                 else:
-                    # SAM_emb=torch.zeros((1))
                     SAM_mask=torch.zeros((1))
 
                 coor, label_depth = load_depth(img_file_path, self.depth_gt_path)
