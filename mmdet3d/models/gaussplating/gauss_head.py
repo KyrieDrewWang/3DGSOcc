@@ -141,14 +141,15 @@ class GausSplatingHead(nn.Module):
                     render_image_height=self.render_image_height,
                     render_image_width=self.render_image_width
                 )
-                if not self.use_sam and self.use_sam_mask:
+                if not self.use_sam and not self.use_sam_mask:
                     rendered_semantic_map = rendered_feature_map.permute(1,2,0)
                     rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
                     sem_label_mask = sem_label_mask_batch_id[c_id]
-                    sem_label_mask = F.resize(sem_label_mask.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
+                    sem_label_mask = torch.nn.functional.interpolate(sem_label_mask.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     sem_label_mask = sem_label_mask.reshape(-1).bool()
+
                     gt_sem = gt_sem_batch_id[c_id]   
-                    gt_sem = F.resize(gt_sem.unsqueeze(0), size=(self.render_image_height, self.render_image_width)).squeeze(0)
+                    gt_sem = torch.nn.functional.interpolate(gt_sem.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     gt_sem = gt_sem.reshape(-1).long()
                     # mask by the projected labels
                     rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
@@ -210,7 +211,6 @@ class GausSplatingHead(nn.Module):
                     correspondence = torch.relu(torch.einsum('CHW,CJK->HWJK', norm_rendered_feature, norm_rendered_feature))
                     corr_loss = -HWHW * correspondence
                     loss_sem_id = loss_sem_id + corr_loss.mean()
-
                     num_label=1
 
                 num_label_points+=num_label
