@@ -18,3 +18,4 @@ env.sh
 run.sh
 socc_*/
 *.log
+test_results/
