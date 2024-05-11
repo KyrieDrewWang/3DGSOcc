@@ -23,18 +23,20 @@ class SplattingOcc(BEVStereo4DOCC):
                  test_threshold=0.,
                  use_lss_depth_loss=True,
                  use_3d_loss=False,
+                 use_gs_loss=True,
                  balance_cls_weight=True,
                  final_softplus=False,
                  gauss_head=None,
                  **kwargs):
         super(SplattingOcc, self).__init__(use_predicter=False, **kwargs)
         self.out_dim = out_dim
+        self.use_gs_loss = use_gs_loss
         self.use_3d_loss = use_3d_loss
         self.test_threshold = test_threshold
         self.use_lss_depth_loss = use_lss_depth_loss
         self.balance_cls_weight = balance_cls_weight
         self.final_softplus = final_softplus
-
+        
         if self.balance_cls_weight:
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
             self.semantic_loss = nn.CrossEntropyLoss(
@@ -78,8 +80,8 @@ class SplattingOcc(BEVStereo4DOCC):
         #     nn.Linear(self.out_dim*2, 1),
         #     nn.Softplus(),
         # )
-
-        self.gaussplating_head = builder.build_head(gauss_head)
+        if self.use_gs_loss:
+            self.gaussplating_head = builder.build_head(gauss_head)
 
     def loss_3d(self,voxel_semantics,mask_camera,density_prob, semantic):
         voxel_semantics=voxel_semantics.long()
@@ -156,7 +158,7 @@ class SplattingOcc(BEVStereo4DOCC):
             loss_occ = self.loss_3d(voxel_semantics, mask_camera, density_prob, semantic)
             losses.update(loss_occ)
         
-        if self.gaussplating_head:
+        if self.use_gs_loss:
             loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density, imgs)
             losses.update(loss_gaussian)
             

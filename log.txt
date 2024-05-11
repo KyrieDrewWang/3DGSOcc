@@ -116,4 +116,37 @@ enlarge lr from 1e-4 to 5e-4
 ========v3.11
 render image (225, 400)
 auxilary frames [-3,-2,-1,1,2,3]
+enlarge lr from 5e-4 to 1e-3
+
+=======v3.12
+render image shape (450, 800)
+auxilary frames [-1,1]
+enlarge lr from 1e-4 to 5e-4
+use_3d_loss=True
+35112 MiB
+
+=======v3.13
+render image shape (450, 800)
+auxilary frames [-2,-1,1]
+enlarge lr from 1e-4 to 5e-4
+38794 MiB
+
+=======v3.14
+render image shape (225, 400)
+auxilary frames [-3,-2,-1,1,2,3]
+38794 MiB
+
+
+=======v3.15
+render image shape (450, 800)
+auxilary frames []
+
+
+=======v3.16
+no gs loss 
+3d + depth loss
+
+=======v3.17
+render image shape (900, 1600)
+auxilary frames [-1]
 enlarge lr from 1e-4 to 5e-4
