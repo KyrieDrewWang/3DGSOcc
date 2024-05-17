@@ -8,6 +8,14 @@ from torchvision.transforms import functional as F
 import cv2
 nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476,  243808, 2457947, 497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031,141625221, 2307405309])
 
+dynamic_class = [0, 1, 3, 4, 5, 7, 9, 10]
+
+nusc_class_nums = torch.Tensor([
+    2854504, 7291443, 141614, 4239939, 32248552, 
+    1583610, 364372, 2346381, 582961, 4829021, 
+    14073691, 191019309, 6249651, 55095657, 
+    58484771, 193834360, 131378779
+])
 
 def distCUDA2(points):
     points_np = points.float().numpy()
@@ -26,11 +34,14 @@ class GausSplatingHead(nn.Module):
                  point_cloud_range,
                  voxel_size,
                  use_depth_sup=False,
+                 use_aux_weight=False,
                  voxel_feature_dim=17,
                  num_classes=18,
                  render_img_shape=None,
                  balance_cls_weight=True,
                  gaussian_sem_weight=1.0,
+                 weight_adj = 0.3,
+                 weight_dyn = 0.0,
                  white_background = False,
                  x_lim_num=200, 
                  y_lim_num=200, 
@@ -39,6 +50,11 @@ class GausSplatingHead(nn.Module):
                  use_sam_mask=False,
                  ) -> None:
         super().__init__()
+        self.use_aux_weight = use_aux_weight
+        self.weight_dyn = weight_dyn
+        self.dynamic_class = torch.tensor(dynamic_class)
+        self.dynamic_weight = torch.exp(0.005 * (nusc_class_nums.max() / nusc_class_nums - 1))
+        self.weight_adj=weight_adj
         self.use_sam_mask = use_sam_mask
         self.use_sam = use_sam
         self.voxel_size = voxel_size
@@ -87,7 +103,7 @@ class GausSplatingHead(nn.Module):
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
         else:
             self.class_weights = torch.ones(17)/17    
-        self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="sum")
+        self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="none")
         self.gaussian_sem_weight=gaussian_sem_weight
 
     def get_presudo_xyz(self):
@@ -144,6 +160,7 @@ class GausSplatingHead(nn.Module):
                 if not self.use_sam and not self.use_sam_mask:
                     rendered_semantic_map = rendered_feature_map.permute(1,2,0)
                     rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
+                    
                     sem_label_mask = sem_label_mask_batch_id[c_id]
                     sem_label_mask = torch.nn.functional.interpolate(sem_label_mask.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     sem_label_mask = sem_label_mask.reshape(-1).bool()
@@ -151,11 +168,24 @@ class GausSplatingHead(nn.Module):
                     gt_sem = gt_sem_batch_id[c_id]   
                     gt_sem = torch.nn.functional.interpolate(gt_sem.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     gt_sem = gt_sem.reshape(-1).long()
+
+                    if self.use_aux_weight and c_id in [0, 1, 2, 3, 4, 5]:
+                        weight_t = torch.full((gt_sem.shape), self.weight_adj).to(gt_sem.device)
+                        dynamic_mask = (self.dynamic_class.to(gt_sem)==gt_sem.unsqueeze(1)).any(-1)
+                        weight_t[dynamic_mask] = self.weight_dyn
+                        weight_b = self.dynamic_weight.to(gt_sem.device)[gt_sem.long()]
+                        aux_weight = weight_t * weight_b
+                    else:
+                        aux_weight = torch.ones_like(gt_sem)
+                    aux_weight = torch.masked_select(aux_weight, sem_label_mask)
                     # mask by the projected labels
                     rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
                     rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
                     gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
+
                     loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
+                    loss_sem_id = loss_sem_id * aux_weight
+                    loss_sem_id = loss_sem_id.sum()
                     num_label = len(sem_label_mask[sem_label_mask])
 
                 if self.use_sam:

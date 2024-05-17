@@ -58,7 +58,7 @@ if __name__ == '__main__':
     
     parser = ArgumentParser(description="SAM feature extracting params")
     
-    parser.add_argument("--image_root", default='data/nuscenes/samples/CAM_BACK', type=str)
+    parser.add_argument("--image_root", default='data/nuscenes/samples/CAM_FRONT', type=str)
     parser.add_argument("--sam_checkpoint_path", default="ckpts/sam_vit_h_4b8939.pth", type=str)
     parser.add_argument("--sam_arch", default="vit_h", type=str)
     parser.add_argument("--depth_gt_path", default="data/nuscenes/depth_gt", type=str)
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     # IMAGE_DIR = os.path.join(args.image_root, 'images')
     IMAGE_DIR = args.image_root
     assert os.path.exists(IMAGE_DIR) and "Please specify a valid image root"
-    OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(args.image_root)), 'SAM_prompt_mask', args.image_root.split('/')[-1])
+    OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(args.image_root)), 'SAM_prompt_mask_vis_', args.image_root.split('/')[-1])
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     pathes = os.listdir(IMAGE_DIR)
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
 
     print("Extracting features...")
-    for path in tqdm(pathes):
+    for path in tqdm(pathes[10000:]):
         name = path.split('.')[0]
         if os.path.exists(os.path.join(OUTPUT_DIR, name+'.pt')):
             continue
@@ -116,18 +116,15 @@ if __name__ == '__main__':
             )
             mask_inx = np.where(scores==np.max(scores))
             mask = masks[mask_inx]
-            mask_list.append(mask[0])
-        masks = torch.tensor(np.stack(mask_list, 0))
-        torch.save(masks, os.path.join(OUTPUT_DIR, name+'.pt'))
-            # print(masks.shape) #output: (1, 600, 900)
+        #     mask_list.append(mask[0])
+        # masks = torch.tensor(np.stack(mask_list, 0))
+        # torch.save(masks, os.path.join(OUTPUT_DIR, name+'.pt'))
+            print(mask.shape) #output: (1, 600, 900)
 
-            # plt.figure(figsize=(10,10))
-            # plt.imshow(img)
-            # show_mask(masks, plt.gca(),random_color=False)
-            # show_points(coord_label, seg_map_label, plt.gca())
-            # plt.axis('off')
-            # plt.savefig(os.path.join(OUTPUT_DIR, name+'.png'))
-
-
-        # features = predictor.features
-        # torch.save(features, os.path.join(OUTPUT_DIR, name+'.pt'))
+            plt.figure(figsize=(10,10))
+            plt.imshow(img)
+            # show_mask(mask, plt.gca(),random_color=False)
+            show_points(coord_label, seg_map_label, plt.gca())
+            plt.axis('off')
+            plt.savefig(os.path.join(OUTPUT_DIR, str(label) + '_' + name +'.png'))
+            plt.close()

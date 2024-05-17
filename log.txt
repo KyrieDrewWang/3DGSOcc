@@ -150,3 +150,15 @@ no gs loss
 render image shape (900, 1600)
 auxilary frames [-1]
 enlarge lr from 1e-4 to 5e-4
+
+=======v3.18
+render image shape (900, 1600)
+auxilary frames [-1]
+enlarge lr from 1e-4 to 1e-3
+
+=======v3.19
+render image shape (450, 800)
+auxilary frames [-2,-1,1]
+enlarge lr from 1e-4 to 5e-4
+use aux weights
+38794 MiB
