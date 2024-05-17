@@ -19,3 +19,4 @@ run.sh
 socc_*/
 *.log
 test_results/
+mmdet3d/models/gaussplating/submodules/diff-gaussian-rasterization/build/
