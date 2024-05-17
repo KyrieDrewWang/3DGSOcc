@@ -241,10 +241,10 @@ class NuScenesDataset3DGS(NuScenesDataset):
         camera_center = torch.stack(camera_center_lst)
         label_segs = torch.stack(label_segs)
         label_masks = torch.stack(label_masks)
-        # label_depths = torch.stack(label_depths)
+        label_depths = mmcv.parallel.DataContainer(label_depths)
         SAM_embs = mmcv.parallel.DataContainer(SAM_embs)
         SAM_masks = mmcv.parallel.DataContainer(SAM_masks)
-        return (FoVx, FoVy, world_view_transform, full_proj_transform, camera_center, SAM_embs, SAM_masks, label_segs, label_masks)
+        return (FoVx, FoVy, world_view_transform, full_proj_transform, camera_center, label_depths, SAM_embs, SAM_masks, label_segs, label_masks)
         
         
     def get_viewpoints(self, index):
@@ -291,11 +291,15 @@ class NuScenesDataset3DGS(NuScenesDataset):
                 coor, label_depth = load_depth(img_file_path, self.depth_gt_path)
                 mask = np.zeros_like(seg_map)
                 mask[coor[:,1], coor[:,0]] = 1
+
+                depth_label_ = np.zeros_like(seg_map)
+                depth_label_[coor[:, 1],coor[:, 0]] = label_depth
+
                 sensor2egos.append(sensor2ego)
                 ego2globals.append(ego2global)
                 intrins.append(intrin)
                 coors.append(torch.Tensor(coor))
-                label_depths.append(torch.Tensor(label_depth))
+                label_depths.append(torch.Tensor(depth_label_))
                 label_segs.append(torch.Tensor(seg_map))
                 label_masks.append(torch.Tensor(mask))
                 SAM_embs.append(SAM_emb)

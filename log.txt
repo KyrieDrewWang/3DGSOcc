@@ -162,3 +162,9 @@ auxilary frames [-2,-1,1]
 enlarge lr from 1e-4 to 5e-4
 use aux weights
 38794 MiB
+
+=======v3.20
+render image shape (225, 400)
+auxilary frames [-3,-2,-1,1,2,3]
+the feature maps are interpolated to be 900 1600 instead of interpolate the labels
+38794 MiB

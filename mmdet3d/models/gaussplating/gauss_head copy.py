@@ -4,7 +4,7 @@ from .splatting_renderer import render_feature_map
 import numpy as np
 from scipy.spatial import KDTree
 from torch.autograd import Variable
-import torch.nn.functional as F
+from torchvision.transforms import functional as F
 from .utils import silog_loss
 
 
@@ -151,7 +151,7 @@ class GausSplatingHead(nn.Module):
             loss_render_depth = 0
             for c_id in range(view_points[0].shape[0]):
                 view_point = [p[c_id] for p in view_points]
-                rendered_feature_map = render_feature_map(
+                rendered_semantic_map, rendered_depth_feature_map = render_feature_map(
                     feature_dim = self.voxel_feature_dim,
                     viewpoint_camera=view_point,
                     voxel_xyz=self.pc_xyz.to(vox_feature_i), # n*3
@@ -164,22 +164,22 @@ class GausSplatingHead(nn.Module):
                     render_image_width=self.render_image_width
                 )
                 if not self.use_sam and not self.use_sam_mask:
-                    rendered_semantic_map = F.interpolate(rendered_feature_map.unsqueeze(0), size=(sem_label_mask_batch_id[c_id].shape[1], sem_label_mask_batch_id[c_id].shape[0]), mode='bilinear', align_corners=True).squeeze(0)
                     rendered_semantic_map = rendered_semantic_map.permute(1,2,0)  # torch.Size([17, 450, 800]) --> torch.Size([450, 800, 17])
                     rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
-
+                    rendered_depth_feature_map = rendered_depth_feature_map.squeeze(0)
+                    rendered_depth_feature_map = rendered_depth_feature_map.reshape(-1)
                     # interpolate label mask(where there is label) 
                     sem_label_mask = sem_label_mask_batch_id[c_id]
+                    sem_label_mask = torch.nn.functional.interpolate(sem_label_mask.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     sem_label_mask = sem_label_mask.reshape(-1).bool()
-
                     # interpolate semantic label
                     gt_sem = gt_sem_batch_id[c_id]   
+                    gt_sem = torch.nn.functional.interpolate(gt_sem.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     gt_sem = gt_sem.reshape(-1).long()
-
                     # interpolate depth label
                     depth_label = depth_label_batch_id[c_id]
+                    depth_label = torch.nn.functional.interpolate(depth_label.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     depth_label = depth_label.reshape(-1)
-
                     # check whether to use aux weight
                     if self.use_aux_weight and c_id in [0, 1, 2, 3, 4, 5]:
                         weight_t = torch.full((gt_sem.shape), self.weight_adj).to(gt_sem.device)
@@ -191,19 +191,15 @@ class GausSplatingHead(nn.Module):
                         aux_weight = torch.ones_like(gt_sem)
                     # mask the aux weight by the label mask
                     aux_weight = torch.masked_select(aux_weight, sem_label_mask)
-
                     # mask the projected semantic feature maps
                     rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
                     rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
-
                     # mask the semantic label
                     gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
-
                     # mask the depth label
                     depth_label = torch.masked_select(depth_label, sem_label_mask) 
-
                     # mask the projected depth feature maps
-                    # rendered_depth_feature_map_masked = torch.masked_select(rendered_depth_feature_map, sem_label_mask)
+                    rendered_depth_feature_map_masked = torch.masked_select(rendered_depth_feature_map, sem_label_mask)
                     # semantic loss 
                     loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
                     loss_sem_id = loss_sem_id * aux_weight
@@ -211,8 +207,7 @@ class GausSplatingHead(nn.Module):
                     num_label = len(sem_label_mask[sem_label_mask])
                     loss_sem_id = loss_sem_id / num_label
                     # depth loss
-                    # loss_depth_id = self.depth_loss(rendered_depth_feature_map_masked+1e-7, depth_label)
-                    # loss_depth_id = 0
+                    loss_depth_id = self.depth_loss(rendered_depth_feature_map_masked+1e-7, depth_label)
                 '''
                 if self.use_sam:
                     rendered_semantic_map = rendered_feature_map.permute(1,2,0)
@@ -270,13 +265,13 @@ class GausSplatingHead(nn.Module):
                     loss_render_id = loss_sem_id
                 '''
                 loss_render_sem = loss_render_sem + loss_sem_id
-                # loss_render_depth = loss_render_depth + loss_depth_id
+                loss_render_depth = loss_render_depth + loss_depth_id
             loss_render_sem_batch = loss_render_sem_batch + loss_render_sem
-            # loss_render_depth_batch = loss_render_depth_batch + loss_render_depth
+            loss_render_depth_batch = loss_render_depth_batch + loss_render_depth
 
         loss_sem = loss_render_sem_batch / voxel_feats.shape[0] * self.gaussian_sem_weight  
-        # loss_dep = loss_render_depth_batch / voxel_feats.shape[0] * self.gaussian_dep_weight
-        return {"render_sem_loss": loss_sem,}
-                # "render_depth_loss": loss_dep}
+        loss_dep = loss_render_depth_batch / voxel_feats.shape[0] * self.gaussian_dep_weight
+        return {"render_sem_loss": loss_sem,
+                "render_depth_loss": loss_dep}
     
     

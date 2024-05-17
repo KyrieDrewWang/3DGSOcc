@@ -1,7 +1,18 @@
+#
+# Copyright (C) 2023, Inria
+# GRAPHDECO research group, https://team.inria.fr/graphdeco
+# All rights reserved.
+#
+# This software is free for non-commercial, research and evaluation use 
+# under the terms of the LICENSE.md file.
+#
+# For inquiries contact  george.drettakis@inria.fr
+#
+
 import torch
 import math
-from diff_gaussian_rasterization_contrastive_f import GaussianRasterizationSettings
-from diff_gaussian_rasterization_contrastive_f import GaussianRasterizer, rasterize_gaussians
+from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
+from torch import nn
 
 def render_feature_map(
     viewpoint_camera:list,
@@ -19,17 +30,20 @@ def render_feature_map(
     render_image_width = 1600,
 ):
     """
-    Render the input feature map. 
+    Render the scene. 
     
     Background tensor (bg_color) must be on GPU!
     """
-    
+ 
     background_color = torch.ones([feature_dim], dtype=torch.float32) if white_background else torch.zeros([feature_dim], dtype=torch.float32)
     background_color = background_color.to(voxel_features)
     # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
     screenspace_points = torch.zeros_like(voxel_xyz, dtype=voxel_xyz.dtype, requires_grad=True) + 0
     screenspace_points = screenspace_points.to(voxel_features)
-    screenspace_points.retain_grad()
+    try:
+        screenspace_points.retain_grad()
+    except:
+        pass
 
     # Set up rasterization configuration
     tanfovx = math.tan(viewpoint_camera[0] * 0.5)
@@ -50,38 +64,31 @@ def render_feature_map(
         debug=debug
     )
 
-    # rasterizer = GaussianRasterizer(raster_settings=raster_settings)
+    rasterizer = GaussianRasterizer(raster_settings=raster_settings)
 
     means3D = voxel_xyz   # pc position
     means2D = screenspace_points # the shape is the same as means3D
     opacity = opacity  # 不透明度 the shape is the same as means3D   
     scales = scaling  # 尺度
     rotations = rotations  # 旋转参数
+    depth_feature = opacity.unsqueeze(1)
 
-    # rendered_image, radii = rasterizer(
-    #     means3D = means3D,
-    #     means2D = means2D,
-    #     shs = None,  # None
-    #     colors_precomp = voxel_features,  # feature map
-    #     opacities = opacity,
-    #     scales = scales,
-    #     rotations = rotations,
-    #     cov3D_precomp = None)
-
-    rendered_image, radii = rasterize_gaussians(
-        colors_precomp = voxel_features,  # feature map
-        opacities = opacity,
+    rendered_image, depth_feature, radii = rasterizer(
         means3D = means3D,
         means2D = means2D,
-        sh = torch.Tensor([]),  # None
+        shs = None,  # None
+        colors_precomp = voxel_features,  # feature map
+        depth_features = depth_feature, 
+        opacities = opacity,
         scales = scales,
         rotations = rotations,
-        cov3Ds_precomp = torch.Tensor([]),
-        raster_settings = raster_settings,
-)
-    return rendered_image
-    # return {
-    #     "render":rendered_image,
-    #     "radii": radii,  # 每个2D gaussian在图像上的半径
-    #     }
-    
+        cov3D_precomp = None)
+
+    # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
+    # They will be excluded from value updates used in the splitting criteria.
+    # return {"render": rendered_image,
+    #         "viewspace_points": screenspace_points,
+    #         "visibility_filter" : radii > 0,
+    #         "radii": radii,
+    #         'depth_feature': depth_feature}
+    return rendered_image, depth_feature
