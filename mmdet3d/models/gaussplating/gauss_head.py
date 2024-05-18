@@ -133,7 +133,7 @@ class GausSplatingHead(nn.Module):
         voxel_points = torch.stack([X, Y, Z], dim=-1).reshape(-1, 3)
         return voxel_points
     
-    def forward(self, voxel_feats, cameras, opacity, imgs, **kwargs):
+    def forward(self, voxel_feats, cameras, opacity, **kwargs):
         loss_render_sem_batch = 0
         loss_render_depth_batch = 0
         for batch_id in range(voxel_feats.shape[0]):

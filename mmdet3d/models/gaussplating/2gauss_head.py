@@ -133,19 +133,21 @@ class GausSplatingHead(nn.Module):
         voxel_points = torch.stack([X, Y, Z], dim=-1).reshape(-1, 3)
         return voxel_points
     
-    def forward(self, voxel_feats, cameras, opacity, imgs, **kwargs):
+    def forward(self, voxel_feats, cameras, opacity, depth, **kwargs):
         loss_render_sem_batch = 0
         loss_render_depth_batch = 0
         for batch_id in range(voxel_feats.shape[0]):
             view_points = [c[batch_id] for c in cameras[:-4]]
             vox_feature_i = voxel_feats[batch_id]
             opacity_i = opacity[batch_id]
+            depth_i = depth[batch_id]
             sam_embd_batch_id = cameras[-4][batch_id]
             gt_sem_batch_id = cameras[-2][batch_id]
             sem_label_mask_batch_id  = cameras[-1][batch_id]
             depth_label_batch_id = cameras[-5][batch_id]
             sam_mask_batch_id = cameras[-3][batch_id]
             opacity_i = opacity_i.reshape(-1,1)
+            depth_i = depth_i.reshape(-1, 1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_render_sem = 0
             loss_render_depth = 0
@@ -156,6 +158,7 @@ class GausSplatingHead(nn.Module):
                     viewpoint_camera=view_point,
                     voxel_xyz=self.pc_xyz.to(vox_feature_i), # n*3
                     opacity=opacity_i, # n*1
+                    depth = depth_i,
                     scaling=self.scale_act((self.scales.to(vox_feature_i))), # n*3
                     rotations=self.rot_act(self.rots.to(vox_feature_i)), # n*4
                     voxel_features=vox_feature_i,  # n*C_v

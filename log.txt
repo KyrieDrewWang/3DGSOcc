@@ -165,6 +165,27 @@ use aux weights
 
 =======v3.20
 render image shape (225, 400)
-auxilary frames [-3,-2,-1,1,2,3]
+auxilary frames [-3,-2,-1,1,2]
+aux weight is used
 the feature maps are interpolated to be 900 1600 instead of interpolate the labels
 38794 MiB
+
+=======v3.21
+render image shape (450, 800)
+auxilary frames [-1,1]
+aux weight is used
+the feature maps are interpolated to be 900 1600 instead of interpolate the labels
+38794 MiB
+
+=======v3.22
+render image shape (900, 1600)
+auxilary frames []
+enlarge lr from 1e-4 to 5e-4
+render depth
+
+=======v3.23
+render image shape (900, 1600)
+auxilary frames []
+enlarge lr from 1e-4 to 5e-4
+render depth
+opacity individual head 

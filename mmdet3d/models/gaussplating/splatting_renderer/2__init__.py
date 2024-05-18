@@ -18,6 +18,7 @@ def render_feature_map(
     viewpoint_camera:list,
     voxel_xyz:torch.tensor,
     opacity:torch.tensor,
+    depth:torch.tensor,
     scaling:torch.tensor,
     rotations:torch.tensor,
     voxel_features:torch.tensor,
@@ -71,14 +72,14 @@ def render_feature_map(
     opacity = opacity  # 不透明度 the shape is the same as means3D   
     scales = scaling  # 尺度
     rotations = rotations  # 旋转参数
-    depth_feature = opacity.unsqueeze(1)
+    depth_feature = depth.unsqueeze(1)
 
     rendered_image, depth_feature, radii = rasterizer(
         means3D = means3D,
         means2D = means2D,
         shs = None,  # None
         colors_precomp = voxel_features,  # feature map
-        depth_features = depth_feature, 
+        semantic_feature = depth_feature, 
         opacities = opacity,
         scales = scales,
         rotations = rotations,

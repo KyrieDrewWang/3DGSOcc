@@ -159,7 +159,7 @@ class SplattingOcc(BEVStereo4DOCC):
             losses.update(loss_occ)
         
         if self.use_gs_loss:
-            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density, imgs)
+            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density)
             losses.update(loss_gaussian)
             
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)
