@@ -29,26 +29,25 @@ NODE_RANK=$3
 
 # master
 MASTER_ADDR=$4
-MASTER_PORT="28301"
+MASTER_PORT="29301"
 
 #JOB ID
 BATCH_JOB_ID=$5
 
-# logs
+# logs      --auto-resume\
 echo "$NODE_RANK,$NODES,$NPROC_PER_NODE,$MASTER_ADDR,$BATCH_JOB_ID"
 OUTPUT_LOG="train_rank${NODE_RANK}_${BATCH_JOB_ID}.log"
 
-PTH_DIR="socc_3_22/latest.pth"
+WORK_DIR="render_1"
 
 torchrun \
      --nnodes="${NODES}" \
      --node_rank="${NODE_RANK}" \
      --nproc_per_node="${NPROC_PER_NODE}" \
      --master_addr="${MASTER_ADDR}" \
+     --max_restarts=5 \
      --master_port="${MASTER_PORT}" \
-     tools/test.py \
-     configs/splattingocc/splattingocc-Nframe.py \
-     $PTH_DIR \
+     tools/train.py \
+     "configs/renderocc/renderocc-7frame.py" \
      --launcher pytorch \
-     --eval segm \
-     --gpu-collect >> "${OUTPUT_LOG}" 2>&1
+     --work_dir $WORK_DIR >> "${OUTPUT_LOG}" 2>&1

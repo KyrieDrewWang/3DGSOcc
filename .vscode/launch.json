@@ -29,9 +29,9 @@
             "justMyCode": false,
             "console": "integratedTerminal",
             "args": [
-                "configs/renderocc/splattingocc-Nframe.py", 
+                "configs/renderocc/renderocc-7frame.py", 
                 "--work_dir",
-                "DEBUG"
+                "debug",
             ]
         }
     ]

@@ -60,6 +60,7 @@ model = dict(
         attn_drop_rate=0.,
         drop_path_rate=0.1,
         use_abs_pos_embed=False,
+        with_cp=True,
         return_stereo_feat=True,
         act_cfg=dict(type='GELU'),
         norm_cfg=dict(type='LN', requires_grad=True),
@@ -113,7 +114,7 @@ model = dict(
 )
 
 # Data
-dataset_type = 'NuScenesDatasetOccpancy'
+dataset_type = 'NuScenesDataset3DGS'
 data_root = 'data/nuscenes/'
 file_client_args = dict(backend='disk')
 
@@ -151,7 +152,7 @@ train_pipeline = [
     dict(
         type='Collect3D', keys=['img_inputs', 'gt_depth', 'voxel_semantics',
                                 'mask_lidar','mask_camera',
-                                'gt_depths', 'rays'
+                                'gt_depths', 'camera_info', 'rays'
                                ])
 ]
 
@@ -184,9 +185,7 @@ test_pipeline = [
                 type='DefaultFormatBundle3D',
                 class_names=class_names,
                 with_label=False),
-            dict(type='Collect3D', keys=['points', 'img_inputs', 'voxel_semantics',
-                                        'mask_lidar','mask_camera',
-                                        ])
+            dict(type='Collect3D', keys=['points', 'img_inputs', 'voxel_semantics', 'mask_lidar','mask_camera', ])
         ])
 ]
 
@@ -213,7 +212,7 @@ test_data_config = dict(
 
 data = dict(
     samples_per_gpu=1,  # with 32 GPU, Batch Size=32 
-    workers_per_gpu=2,
+    workers_per_gpu=1,
     train=dict(
         data_root=data_root,
         ann_file=data_root + 'bevdetv2-nuscenes_infos_train.pkl',

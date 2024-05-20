@@ -21,3 +21,4 @@ socc_*/
 test_results/
 mmdet3d/models/gaussplating/submodules/diff-gaussian-rasterization/build/
 debug/
+render_*/

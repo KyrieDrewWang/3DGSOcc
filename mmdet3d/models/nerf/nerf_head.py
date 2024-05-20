@@ -19,7 +19,9 @@ from .utils import Raw2Alpha, Alphas2Weights, ub360_utils_cuda, silog_loss
 #                 1446141335, 1724391378])
 
 ## occ3d-nuscenes
-nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476, 243808, 2457947, 497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031, 141625221, 2307405309])
+nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476, 243808, 2457947, 
+            497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031, 
+            141625221, 2307405309])
 
 # @functools.lru_cache(maxsize=128)
 def create_full_step_id(shape):
@@ -185,7 +187,8 @@ class NerfHead(nn.Module):
         )
         
         ray_id, step_id = create_full_step_id(ray_pts.shape[:2])
-
+        ray_id = ray_id.to(device)
+        step_id = step_id.to(device)
         # skip oversampled points outside scene bbox
         mask = inner_mask.clone()
         dist_thres = (2+2*self.bg_len) / self.world_len * self.step_size * 0.95
@@ -267,6 +270,7 @@ class NerfHead(nn.Module):
         )
         semantic_loss = criterion(semantic, target_semantic.long())
         losses['loss_render_semantic'] = semantic_loss * self.weight_semantic
+    
 
         if self.weight_entropy_last > 0:
             pout = results['alphainv_last'].clamp(1e-6, 1-1e-6)
@@ -350,4 +354,3 @@ class NerfHead(nn.Module):
         for key in losses:
             losses[key] = losses[key] / density.shape[0]
         return losses
-

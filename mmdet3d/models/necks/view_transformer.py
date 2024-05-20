@@ -217,18 +217,29 @@ class LSSViewTransformer(BaseModule):
         num_points = B * N * D * H * W
         # record the index of selected points for acceleration purpose
 
-        ranks_depth = torch.arange(
-            0, num_points, dtype=torch.int, device=coor.device)
-        ranks_feat = torch.arange(
-            0, num_points // D , dtype=torch.int, device=coor.device)
+        # ranks_depth = torch.arange(
+        #     0, num_points, dtype=torch.int, device=coor.device)
+        # ranks_feat = torch.arange(
+        #     0, num_points // D , dtype=torch.int, device=coor.device)
+        
+        ranks_depth = torch.range(
+            0, num_points - 1, dtype=torch.int, device=coor.device)
+        ranks_feat = torch.range(
+            0, num_points // D - 1, dtype=torch.int, device=coor.device)
+
         ranks_feat = ranks_feat.reshape(B, N, 1, H, W)
         ranks_feat = ranks_feat.expand(B, N, D, H, W).flatten()
         # convert coordinate into the voxel space
         coor = ((coor - self.grid_lower_bound.to(coor)) /
                 self.grid_interval.to(coor))
         coor = coor.long().view(num_points, 3)
-        batch_idx = torch.arange(0, B).reshape(B, 1). \
+
+        # batch_idx = torch.arange(0, B).reshape(B, 1). \
+        #     expand(B, num_points // B).reshape(num_points, 1).to(coor)
+        
+        batch_idx = torch.range(0, B - 1).reshape(B, 1). \
             expand(B, num_points // B).reshape(num_points, 1).to(coor)
+
         coor = torch.cat((coor, batch_idx), 1)
 
         # filter out points that are outside box
@@ -634,7 +645,6 @@ class DepthNet(nn.Module):
             depth = torch.cat([depth, cost_volumn], dim=1)
         if self.with_cp:
             depth = checkpoint(self.depth_conv, depth)
-            # depth = self.depth_conv(depth)
         else:
             depth = self.depth_conv(depth)
         return torch.cat([depth, context], dim=1)
@@ -694,10 +704,8 @@ class DepthAggregation(nn.Module):
     @autocast(False)
     def forward(self, x):
         x = checkpoint(self.reduce_conv, x)
-        # x = self.reduce_conv(x)
         short_cut = x
         x = checkpoint(self.conv, x)
-        # x = self.conv(x)
         x = short_cut + x
         x = self.out_conv(x)
         return x
@@ -781,7 +789,6 @@ class LSSViewTransformerBEVDepth(LSSViewTransformer):
         fg_mask = torch.max(depth_labels, dim=1).values > 0.0
         depth_preds_new = torch.masked_select(depth_preds, fg_mask.unsqueeze(1))
         depth_labels_new = torch.masked_select(depth_labels, fg_mask.unsqueeze(1))
-        depth_preds_new = torch.sigmoid(depth_preds_new)
         depth_loss = F.binary_cross_entropy(
             depth_preds_new,
             depth_labels_new,

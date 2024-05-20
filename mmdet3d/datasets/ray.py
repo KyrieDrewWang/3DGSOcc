@@ -4,29 +4,29 @@ from torch.utils.data import WeightedRandomSampler
 
 
 
-# def generate_frustum(img, cam2ego, cam_intrinsic):
-#     device = imgs.device
-#     rgb_tr = imgs.permute(0,2,3,1)
-#     poses = sensor2keyegos
-#     Ks = cam_intrinsic
-#     N, H, W = rgb_tr.shape[:3]
+def generate_frustum(img, cam2ego, cam_intrinsic):
+    device = imgs.device
+    rgb_tr = imgs.permute(0,2,3,1)
+    poses = sensor2keyegos
+    Ks = cam_intrinsic
+    N, H, W = rgb_tr.shape[:3]
 
-#     rays_o_tr = torch.zeros([N, H, W, 3], device=device)  
-#     rays_d_tr = torch.zeros([N, H, W, 3], device=device)   
-#     viewdirs_tr = torch.zeros([N, H, W, 3], device=device) 
-#     for cam_id in range(N):
-#         c2w = poses[cam_id]
-#         K = Ks[cam_id]
-#         rays_o_tmp, rays_d_tmp, viewdirs_tmp = get_rays_of_a_view(
-#                 H=H, W=W, K=K, 
-#                 c2w=c2w, ndc=False, 
-#                 inverse_y=True, flip_x=False, flip_y=False
-#                 )
-#         rays_o_tr[cam_id].copy_(rays_o_tmp.to(device))
-#         rays_d_tr[cam_id].copy_(rays_d_tmp.to(device))
-#         viewdirs_tr[cam_id].copy_(viewdirs_tmp.to(device))
-#         del rays_o_tmp, rays_d_tmp, viewdirs_tmp
-#     return rays_o_tr, rays_d_tr, viewdirs_tr, rgb_tr
+    rays_o_tr = torch.zeros([N, H, W, 3], device=device)  
+    rays_d_tr = torch.zeros([N, H, W, 3], device=device)   
+    viewdirs_tr = torch.zeros([N, H, W, 3], device=device) 
+    for cam_id in range(N):
+        c2w = poses[cam_id]
+        K = Ks[cam_id]
+        rays_o_tmp, rays_d_tmp, viewdirs_tmp = get_rays_of_a_view(
+                H=H, W=W, K=K, 
+                c2w=c2w, ndc=False, 
+                inverse_y=True, flip_x=False, flip_y=False
+                )
+        rays_o_tr[cam_id].copy_(rays_o_tmp.to(device))
+        rays_d_tr[cam_id].copy_(rays_d_tmp.to(device))
+        viewdirs_tr[cam_id].copy_(viewdirs_tmp.to(device))
+        del rays_o_tmp, rays_d_tmp, viewdirs_tmp
+    return rays_o_tr, rays_d_tr, viewdirs_tr, rgb_tr
 
 
 
@@ -47,7 +47,7 @@ def get_rays(i, j, K, c2w, inverse_y=True):
 
 
 def pts2ray(coor, label_depth, label_seg, c2w, cam_intrinsic):
-    rays_o, rays_d, viewdirs = get_rays(coor[:,0]+0.5, coor[:,1]+0.5, K=cam_intrinsic, c2w=c2w)
+    rays_o, rays_d, viewdirs = get_rays(coor[:,0]+0.5, coor[:,1]+0.5, K=cam_intrinsic,c2w=c2w)
     return torch.cat([
         coor, label_depth.unsqueeze(1), label_seg.unsqueeze(1),  # 0-1, 2, 3
         rays_o, rays_d, viewdirs        # 4:7,7:10,10:13

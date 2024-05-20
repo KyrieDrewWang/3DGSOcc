@@ -320,7 +320,7 @@ class WindowMSA(BaseModule):
         relative_position_bias = relative_position_bias.view(self.window_size[0] * self.window_size[1],self.window_size[0] * self.window_size[1], -1)
         relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # Wh*Ww,Wh*Ww,nH
         # relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
-        attn_new = attn.clone()
+        # attn_new = attn.clone()
         attn_new = attn + relative_position_bias.unsqueeze(0)
         # attn = attn
 
