@@ -84,14 +84,6 @@ class GausSplatingHead(nn.Module):
         rots = torch.zeros((pc_xyz.shape[0], 4))
         rots[:, 0] = 1        
         self.rots = rots.requires_grad_(False).cuda()
-        # depth_pos = torch.ones((pc_xyz.shape[0], 1))
-        # self.depth_pos = depth_pos.requires_grad_(True)
-
-        xyz_d = self.get_presudo_xyz()
-        xyz_d = torch.norm(xyz_d,p=2,dim=1,keepdim=True) 
-        xyz_d = xyz_d / xyz_d.max()
-        self.depth_pos = xyz_d.requires_grad_(False).cuda()
-
         # self.rots = nn.Parameter(rots)
         self.scale_act = torch.exp
         self.rot_act = torch.nn.functional.normalize
@@ -116,10 +108,10 @@ class GausSplatingHead(nn.Module):
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
         else:
             self.class_weights = torch.ones(17)/17    
-        self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="none")
+        self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="none").cuda()
         self.gaussian_sem_weight=gaussian_sem_weight
         self.gaussian_dep_weight=gaussian_dep_weight
-        self.depth_loss = silog_loss()
+        self.depth_loss = silog_loss().cuda()
 
     def get_presudo_xyz(self):
         x_lim_num, y_lim_num, z_lim_num = self.x_lim_num, self.y_lim_num, self.z_lim_num
@@ -168,7 +160,6 @@ class GausSplatingHead(nn.Module):
                     viewpoint_camera=view_point,
                     voxel_xyz=self.pc_xyz, #.to(vox_feature_i), # n*3
                     opacity=opacity_i, # n*1
-                    depth = self.depth_pos, #.to(vox_feature_i),  # n*1
                     scaling=self.scale_act(self.scales), # n*3
                     rotations=self.rot_act(self.rots), # n*4
                     voxel_features=vox_feature_i,  # n*C_v
@@ -176,15 +167,14 @@ class GausSplatingHead(nn.Module):
                     render_image_height=self.render_image_height,
                     render_image_width=self.render_image_width
                 )
+                # print("rendered_depth_feature:", str(rendered_depth_feature.max().item()), "-", str(rendered_depth_feature.min().item()), '\n')
                 if not self.use_sam and not self.use_sam_mask:
                     rendered_semantic_map = F.interpolate(rendered_semantic.unsqueeze(0), size=(sem_label_mask_batch_id[c_id].shape[1], sem_label_mask_batch_id[c_id].shape[0]), mode='bilinear', align_corners=True).squeeze(0)
                     rendered_semantic_map = rendered_semantic_map.permute(1,2,0)  # torch.Size([17, 450, 800]) --> torch.Size([450, 800, 17])
                     rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
-
                     rendered_depth_feature_map = F.interpolate(rendered_depth_feature.unsqueeze(0), size=(sem_label_mask_batch_id[c_id].shape[1], sem_label_mask_batch_id[c_id].shape[0]), mode='bilinear', align_corners=True).squeeze(0)
-                    rendered_depth_feature_map = (rendered_depth_feature_map+1e-7)*self.radius
-                    # rendered_depth_feature_map = rendered_depth_feature_map.permute(1,2,0)
-                    # rendered_depth_feature_map = rendered_depth_feature_map[..., 0]
+                    # rendered_depth_feature_map = (rendered_depth_feature_map / rendered_depth_feature_map.max())*self.radius
+                    rendered_depth_feature_map = (rendered_depth_feature_map)*self.radius
                     rendered_depth_feature_map = rendered_depth_feature_map.reshape(-1)
 
                     # depth label
@@ -203,14 +193,14 @@ class GausSplatingHead(nn.Module):
                     gt_sem = gt_sem.reshape(-1).long()
 
                     # check whether to use aux weight
-                    if self.use_aux_weight and c_id in [0, 1, 2, 3, 4, 5]:
+                    if self.use_aux_weight and c_id not in range(6):
                         weight_t = torch.full((gt_sem.shape), self.weight_adj).to(gt_sem.device)
                         dynamic_mask = (self.dynamic_class.to(gt_sem)==gt_sem.unsqueeze(1)).any(-1)
                         weight_t[dynamic_mask] = self.weight_dyn
                         weight_b = self.dynamic_weight.to(gt_sem.device)[gt_sem.long()]
                         aux_weight = weight_t * weight_b
                     else:
-                        aux_weight = torch.ones_like(gt_sem)
+                        aux_weight = torch.ones_like(gt_sem).to(gt_sem.device)
                     # mask the aux weight by the label mask
                     aux_weight = torch.masked_select(aux_weight, sem_label_mask)
 
@@ -234,7 +224,7 @@ class GausSplatingHead(nn.Module):
                     loss_sem_id = loss_sem_id.sum() / num_label
                     # depth loss
                     # print("depth_label", depth_label)
-                    loss_depth_id = self.depth_loss(rendered_depth_feature_map_masked+1e-7, depth_label, aux_weight)
+                    loss_depth_id = self.depth_loss((rendered_depth_feature_map_masked+1e-7), depth_label, aux_weight)
                     # loss_depth_id = loss_depth_id * aux_weight
                     # loss_depth_id = loss_depth_id.sum() / num_label
                 

@@ -18,7 +18,7 @@ def render_feature_map(
     viewpoint_camera:list,
     voxel_xyz:torch.tensor,
     opacity:torch.tensor,
-    depth:torch.tensor,
+    # depth:torch.tensor,
     scaling:torch.tensor,
     rotations:torch.tensor,
     voxel_features:torch.tensor,
@@ -64,7 +64,9 @@ def render_feature_map(
         prefiltered=False,
         debug=debug
     )
-
+    depth_feature = torch.mm(torch.cat([voxel_xyz, torch.ones((voxel_xyz.shape[0]), 1).to(voxel_xyz)], -1), viewpoint_camera[2])[:, 2].unsqueeze(1).unsqueeze(1)  # p_view.z
+    depth_feature = depth_feature / torch.abs(depth_feature).max() # normalize p_view.z
+    depth_feature.requires_grad_(False)
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
 
     means3D = voxel_xyz   # pc position
@@ -72,7 +74,7 @@ def render_feature_map(
     opacity = opacity  # 不透明度 the shape is the same as means3D   
     scales = scaling  # 尺度
     rotations = rotations  # 旋转参数
-    depth_feature = depth.unsqueeze(1)
+    # depth_feature = depth.unsqueeze(1)
     rendered_image, depth_feature, radii = rasterizer(
         means3D = means3D,
         means2D = means2D,

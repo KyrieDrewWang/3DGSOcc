@@ -226,7 +226,6 @@ lr 5e-4
 use aux weights
 the feature maps are interpolated to be 900 1600 instead of interpolate the labels
 with lssdepth loss
-use aux weights
 38794 MiB
 
 
@@ -300,51 +299,74 @@ use aux weights
 
 
 =======v3.34
-render image shape (450, 800)
+render image shape (112, 200)
 auxilary frames [-1,1]
 lr 1e-4
-radius 39
-render depth by point distance
+render depth during raster
+                            <-
 the feature maps are interpolated instead of interpolate the labels
 use aux weights on both depth and semantic
 with lssdepth loss
 use aux weights
-37756 MiB
-
+39888 MiB
 
 =======v3.35
-render image shape (450, 800)
-auxilary frames [-1,1]
-enlarge lr from 1e-4 to 5e-4
-render density
-opacity individual head 
-with lssdepth loss
-loss averaged on viewpoints
-33130
-
-
-=======v3.36
-render image shape (450, 800)
-auxilary frames [-1, 1]
+render image shape (900, 1600)
+auxilary frames []
 lr 1e-4
-render depth by point distance
-radius 39
-opacity is calculated by depth2opacity
+render depth during raster
 the feature maps are interpolated instead of interpolate the labels
 use aux weights on both depth and semantic
 with lssdepth loss
 use aux weights
-loss averaged on viewpoints
-37756 MiB
+32016 MiB
 
-=======v3.37
-render image shape (450, 800)
+=======v3.36
+render image shape (112, 200)
 auxilary frames [-1,1]
-enlarge lr from 1e-4 to 5e-4
-render density
-opacity individual head 
+lr 1e-4
+render depth during raster
+depth rendered is normalized and times self.radius to calculate loss    <-
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
 with lssdepth loss
-pred depth * radius to calculate loss
-33130
+use aux weights
+39888 MiB
+
+=======v3.37 
+render image shape (112, 200)
+auxilary frames [-1,1]
+lr 1e-4
+render depth by point distance calculated by p_view
+                            <--
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+32192 MiB
 
 =======v3.38
+render image shape (112, 200)
+auxilary frames [-1,1]
+lr 1e-4
+render depth during raster
+depth rendering times self.radius   <-
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+39888 MiB
+
+=======v3.39
+render image shape (112, 200)
+auxilary frames [-1,1]
+lr 1e-4
+render depth by point distance calculated by p_view
+point distance is normalized and the rendered depth times self.radius <--
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+32192 MiB
+
+=======v3.40

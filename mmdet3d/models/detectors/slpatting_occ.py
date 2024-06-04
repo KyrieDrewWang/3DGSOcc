@@ -153,6 +153,8 @@ class SplattingOcc(BEVStereo4DOCC):
         density = density_prob[..., 0]
         semantic = self.semantic_mlp(voxel_feats)
         density = self.density_act(density)
+        # print("density:", str(density.max().item()), "-", str(density.min().item()), '\n')
+        # print("semantic:", str(semantic.max().item()), "-", str(semantic.min().item()), '\n')
         losses = dict()
         if self.use_3d_loss:      # 3D loss
             voxel_semantics = kwargs['voxel_semantics']
@@ -168,7 +170,7 @@ class SplattingOcc(BEVStereo4DOCC):
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)
             loss_depth = self.img_view_transformer.get_depth_loss(kwargs['gt_depth'], depth)
             losses['loss_lss_depth'] = loss_depth  
-        # print(losses)
+        # print("loss:", losses)
         return losses
 
 
