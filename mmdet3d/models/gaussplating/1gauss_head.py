@@ -148,7 +148,7 @@ class GausSplatingHead(nn.Module):
             opacity_i = opacity_i.reshape(-1,1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_render_sem = 0
-            loss_render_depth = 0
+            # loss_render_depth = 0
             for c_id in range(view_points[0].shape[0]):
                 view_point = [p[c_id] for p in view_points]
                 rendered_feature_map = render_feature_map(
@@ -213,6 +213,11 @@ class GausSplatingHead(nn.Module):
                     # depth loss
                     # loss_depth_id = self.depth_loss(rendered_depth_feature_map_masked+1e-7, depth_label)
                     # loss_depth_id = 0
+
+
+
+
+                    
                 '''
                 if self.use_sam:
                     rendered_semantic_map = rendered_feature_map.permute(1,2,0)
@@ -271,7 +276,7 @@ class GausSplatingHead(nn.Module):
                 '''
                 loss_render_sem = loss_render_sem + loss_sem_id
                 # loss_render_depth = loss_render_depth + loss_depth_id
-            loss_render_sem_batch = loss_render_sem_batch + loss_render_sem
+            loss_render_sem_batch = loss_render_sem_batch + loss_render_sem #/ view_points[0].shape[0]
             # loss_render_depth_batch = loss_render_depth_batch + loss_render_depth
 
         loss_sem = loss_render_sem_batch / voxel_feats.shape[0] * self.gaussian_sem_weight  

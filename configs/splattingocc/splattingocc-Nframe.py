@@ -1,5 +1,5 @@
 _base_ = ['./bevstereo-occ.py']
-render_img_shape=(900, 1600)
+render_img_shape=(112, 200)
 use_sam=False
 use_sam_mask=False
 model = dict(
@@ -9,14 +9,16 @@ model = dict(
     use_lss_depth_loss=True,
     use_gs_loss=True,
     test_threshold=0.,
+    opacity_threshold = 0.,
     gauss_head=dict(
         type='GausSplatingHead',
         point_cloud_range= [-40, -40, -1, 40, 40, 5.4],
         voxel_size=0.4,
+        radius=39,
         voxel_feature_dim=17,
         num_classes=18,
         gaussian_sem_weight=1.0,
-        gaussian_dep_weight=1.0,
+        gaussian_dep_weight=0.5,
         weight_adj=0.3,
         weight_dyn=0.0,
         white_background=False,
@@ -30,20 +32,20 @@ model = dict(
     ),
 )
 
-optimizer = dict(type='AdamW', lr=1e-3, weight_decay=1e-2)
+optimizer = dict(type='AdamW', lr=1e-4, weight_decay=1e-2)
 
 depth_gt_path = 'data/nuscenes/depth_gt'
 semantic_gt_path = 'data/nuscenes/seg_gt_lidarseg'
 
 data = dict(
     samples_per_gpu=2,  # with 8 GPU, Batch Size=16 
-    workers_per_gpu=2,
+    workers_per_gpu=0,
     train=dict(
         use_rays=False,
         use_camera=True,
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
-        aux_frames=[-1],
+        aux_frames=[-1,1],
         # aux_frames=[-3,-2,-1,1,2,3],
         znear=0.01, 
         zfar=40,

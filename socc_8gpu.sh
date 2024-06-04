@@ -3,6 +3,7 @@ module load compilers/cuda/11.6
 module load cudnn/8.4.0.27_cuda11.x 
 module load compilers/gcc/9.3.0 
 module load llvm/triton-clang_llvm-11.0.1
+module load llvm/10.0.0_gcc10.5_with_runtime
 source activate socc-v2
 
 export PYTHONUNBUFFERED=1
@@ -29,7 +30,7 @@ NODE_RANK=$3
 
 # master
 MASTER_ADDR=$4
-MASTER_PORT="29301"
+MASTER_PORT="29382"
 
 #JOB ID
 BATCH_JOB_ID=$5
@@ -38,14 +39,13 @@ BATCH_JOB_ID=$5
 echo "$NODE_RANK,$NODES,$NPROC_PER_NODE,$MASTER_ADDR,$BATCH_JOB_ID"
 OUTPUT_LOG="train_rank${NODE_RANK}_${BATCH_JOB_ID}.log"
 
-WORK_DIR="socc_3_25"
+WORK_DIR="socc_3_34"
 
 torchrun \
      --nnodes="${NODES}" \
      --node_rank="${NODE_RANK}" \
      --nproc_per_node="${NPROC_PER_NODE}" \
      --master_addr="${MASTER_ADDR}" \
-     --max_restarts=5 \
      --master_port="${MASTER_PORT}" \
      tools/train.py \
      "configs/splattingocc/splattingocc-Nframe.py" \

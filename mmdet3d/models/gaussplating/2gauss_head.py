@@ -35,6 +35,7 @@ class GausSplatingHead(nn.Module):
     def __init__(self,
                  point_cloud_range,
                  voxel_size,
+                 radius=39,
                  use_depth_sup=False,
                  use_aux_weight=False,
                  voxel_feature_dim=17,
@@ -53,6 +54,7 @@ class GausSplatingHead(nn.Module):
                  use_sam_mask=False,
                  ) -> None:
         super().__init__()
+        self.radius = radius
         self.use_aux_weight = use_aux_weight
         self.weight_dyn = weight_dyn
         self.dynamic_class = torch.tensor(dynamic_class)
@@ -153,6 +155,9 @@ class GausSplatingHead(nn.Module):
             loss_render_depth = 0
             for c_id in range(view_points[0].shape[0]):
                 view_point = [p[c_id] for p in view_points]
+                print("vox_feature_i:", torch.isnan(vox_feature_i).sum().item())
+                print("depth_i", torch.isnan(depth_i).sum().item())
+                print("opacity_i", torch.isnan(opacity_i).sum().item())
                 rendered_semantic_map, rendered_depth_feature_map = render_feature_map(
                     feature_dim = self.voxel_feature_dim,
                     viewpoint_camera=view_point,
@@ -166,6 +171,7 @@ class GausSplatingHead(nn.Module):
                     render_image_height=self.render_image_height,
                     render_image_width=self.render_image_width
                 )
+                rendered_depth_feature_map = (rendered_depth_feature_map+1e-7) #* self.radius
                 if not self.use_sam and not self.use_sam_mask:
                     rendered_semantic_map = rendered_semantic_map.permute(1,2,0)  # torch.Size([17, 450, 800]) --> torch.Size([450, 800, 17])
                     rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
@@ -210,7 +216,11 @@ class GausSplatingHead(nn.Module):
                     num_label = len(sem_label_mask[sem_label_mask])
                     loss_sem_id = loss_sem_id / num_label
                     # depth loss
-                    loss_depth_id = self.depth_loss(rendered_depth_feature_map_masked+1e-7, depth_label)
+                    loss_depth_id = self.depth_loss(rendered_depth_feature_map_masked+1e-7, depth_label, aux_weight)
+                    # loss_depth_id = loss_depth_id * aux_weight
+                    # loss_depth_id = loss_depth_id.sum()
+                    # loss_depth_id = loss_depth_id / num_label
+
                 '''
                 if self.use_sam:
                     rendered_semantic_map = rendered_feature_map.permute(1,2,0)
@@ -269,8 +279,8 @@ class GausSplatingHead(nn.Module):
                 '''
                 loss_render_sem = loss_render_sem + loss_sem_id
                 loss_render_depth = loss_render_depth + loss_depth_id
-            loss_render_sem_batch = loss_render_sem_batch + loss_render_sem
-            loss_render_depth_batch = loss_render_depth_batch + loss_render_depth
+            loss_render_sem_batch = loss_render_sem_batch + loss_render_sem / view_points[0].shape[0]
+            loss_render_depth_batch = loss_render_depth_batch + loss_render_depth / view_points[0].shape[0]
 
         loss_sem = loss_render_sem_batch / voxel_feats.shape[0] * self.gaussian_sem_weight  
         loss_dep = loss_render_depth_batch / voxel_feats.shape[0] * self.gaussian_dep_weight

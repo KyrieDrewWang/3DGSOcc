@@ -15,12 +15,16 @@ import time
 # occ3d-nuscenes
 nusc_class_frequencies = np.array([1163161, 2309034, 188743, 2997643, 20317180, 852476, 243808, 2457947, 497017, 2731022, 7224789, 214411435, 5565043, 63191967, 76098082, 128860031, 141625221, 2307405309])
 
+def density2opacity(x):
+    return 1-torch.exp(-x)
+
 @DETECTORS.register_module()
 class SplattingOcc(BEVStereo4DOCC):
     def __init__(self,
                  out_dim=32,
                  num_classes=18,
                  test_threshold=0.,
+                 opacity_threshold = 0.,
                  use_lss_depth_loss=True,
                  use_3d_loss=False,
                  use_gs_loss=True,
@@ -30,6 +34,7 @@ class SplattingOcc(BEVStereo4DOCC):
                  **kwargs):
         super(SplattingOcc, self).__init__(use_predicter=False, **kwargs)
         self.out_dim = out_dim
+        self.opacity_threshold = opacity_threshold
         self.use_gs_loss = use_gs_loss
         self.use_3d_loss = use_3d_loss
         self.test_threshold = test_threshold
@@ -73,12 +78,12 @@ class SplattingOcc(BEVStereo4DOCC):
             nn.Softplus(),
             nn.Linear(self.out_dim*2, num_classes-1),
         )
-
-        # self.opacity_head = nn.Sequential(
+        self.density_act=density2opacity
+        # self.opacity = nn.Sequential(
         #     nn.Linear(self.out_dim, self.out_dim*2),
         #     nn.Softplus(),
         #     nn.Linear(self.out_dim*2, 1),
-        #     nn.Softplus(),
+        #     nn.Softplus()
         # )
         if self.use_gs_loss:
             self.gaussplating_head = builder.build_head(gauss_head)
@@ -116,13 +121,14 @@ class SplattingOcc(BEVStereo4DOCC):
         
         # predict SDF
         density_prob = self.density_mlp(voxel_feats)
-        density = density_prob[...,0]
+
+        density = density_prob[..., 0]
         semantic = self.semantic_mlp(voxel_feats)
 
         # SDF --> Occupancy
         no_empty_mask = density > self.test_threshold
         semantic_res = semantic.argmax(-1)
-
+        
         B, H, W, Z, C = voxel_feats.shape
         occ = torch.ones((B,H,W,Z), dtype=semantic_res.dtype).to(semantic_res.device)
         occ = occ * (self.num_classes-1)
@@ -142,14 +148,11 @@ class SplattingOcc(BEVStereo4DOCC):
                 bda, curr2adjsensor = img_inputs
         img_feats, depth = self.extract_img_feat(img_inputs, img_metas, **kwargs)
         voxel_feats = self.final_conv(img_feats[0]).permute(0, 4, 3, 2, 1) # bncdhw->bnwhdc
-        # fake_loss = voxel_feats - torch.rand_like(voxel_feats)
         # predict SDF
         density_prob = self.density_mlp(voxel_feats)
         density = density_prob[..., 0]
         semantic = self.semantic_mlp(voxel_feats)
-        # opacity = self.opacity_head(voxel_feats)
-
-        # compute loss
+        density = self.density_act(density)
         losses = dict()
         if self.use_3d_loss:      # 3D loss
             voxel_semantics = kwargs['voxel_semantics']
@@ -165,7 +168,7 @@ class SplattingOcc(BEVStereo4DOCC):
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)
             loss_depth = self.img_view_transformer.get_depth_loss(kwargs['gt_depth'], depth)
             losses['loss_lss_depth'] = loss_depth  
-        
+        # print(losses)
         return losses
 
 

@@ -189,7 +189,7 @@ render depth
 render image shape (900, 1600)
 auxilary frames []
 enlarge lr from 1e-4 to 5e-4
-render depth
+render density
 opacity individual head 
 with lssdepth loss
 33130
@@ -200,10 +200,151 @@ auxilary frames [-3,-2,-1,1,2]
 aux weight is used
 the feature maps are interpolated to be 900 1600 instead of interpolate the labels
 with lssdepth loss
+loss averaged on all label points
 38794 MiB
 
 =======v3.25
 render image shape (900, 1600)
 auxilary frames [-1]
 with lssdepth loss
+aux weight
 enlarge lr to 1e-3
+
+
+=======v3.26
+render image shape (900, 1600)
+auxilary frames [-1]
+with lssdepth loss
+no aux weight
+enlarge lr to 1e-3
+
+
+=======v3.27
+render image shape (112, 200)
+auxilary frames [-2,-1,1,2]
+lr 5e-4
+use aux weights
+the feature maps are interpolated to be 900 1600 instead of interpolate the labels
+with lssdepth loss
+use aux weights
+38794 MiB
+
+
+=======v3.28
+render image shape (112, 200)
+auxilary frames [-2, -1, 1, 2]
+lr 1e-4
+render depth by ones
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+37756 MiB
+
+=======v3.29
+render image shape (225, 400)
+auxilary frames [-1,1]
+lr 5e-4
+use aux weights
+the feature maps are interpolated to be 900 1600 instead of interpolate the labels
+with lssdepth loss
+38794 MiB
+
+
+=======v3.30
+render image shape (112, 200)
+auxilary frames [-2, -1, 1, 2]
+lr 1e-4
+render depth by opacity
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+37756 MiB
+
+
+=======v3.31
+render image shape (112, 200)
+auxilary frames [-2, -1, 1, 2]
+lr 1e-4
+render depth by density
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+37756 MiB
+
+=======v3.32
+render image shape (112, 200)
+auxilary frames [-2, -1, 1, 2]
+lr 1e-4
+render depth by newly made ones
+opacity is calculated by depth2opacity
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+37756 MiB
+
+=======v3.33
+render image shape (112, 200)
+auxilary frames [-2, -1, 1, 2]
+lr 1e-4
+render depth by density
+opacity is calculated by depth2opacity
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+37756 MiB
+
+
+=======v3.34
+render image shape (450, 800)
+auxilary frames [-1,1]
+lr 1e-4
+radius 39
+render depth by point distance
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+37756 MiB
+
+
+=======v3.35
+render image shape (450, 800)
+auxilary frames [-1,1]
+enlarge lr from 1e-4 to 5e-4
+render density
+opacity individual head 
+with lssdepth loss
+loss averaged on viewpoints
+33130
+
+
+=======v3.36
+render image shape (450, 800)
+auxilary frames [-1, 1]
+lr 1e-4
+render depth by point distance
+radius 39
+opacity is calculated by depth2opacity
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+loss averaged on viewpoints
+37756 MiB
+
+=======v3.37
+render image shape (450, 800)
+auxilary frames [-1,1]
+enlarge lr from 1e-4 to 5e-4
+render density
+opacity individual head 
+with lssdepth loss
+pred depth * radius to calculate loss
+33130
+
+=======v3.38
