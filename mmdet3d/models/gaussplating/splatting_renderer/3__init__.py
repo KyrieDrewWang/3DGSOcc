@@ -14,44 +14,6 @@ import math
 from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 from torch import nn
 
-
-def calculate_selection_score(features, query_features, score_threshold=None, positive_ids=[0]):
-        features /= features.norm(dim=-1, keepdim=True)
-        query_features /= query_features.norm(dim=-1, keepdim=True)
-        scores = features.half() @ query_features.T.half()  # (N_points, n_texts)
-        if scores.shape[-1] == 1:
-            scores = scores[:, 0]  # (N_points,)
-            scores = (scores >= score_threshold).float()
-        else:
-            scores = torch.nn.functional.softmax(scores, dim=-1)  # (N_points, n_texts)
-            if score_threshold is not None:
-                scores = scores[:, positive_ids].sum(-1)  # (N_points, )
-                scores = (scores >= score_threshold).float()
-            else:
-                scores[:, positive_ids[0]] = scores[:, positive_ids].sum(-1)  # (N_points, )
-                scores = torch.isin(torch.argmax(scores, dim=-1), torch.tensor(positive_ids).cuda()).float()
-        return scores
-
-def calculate_selection_score_delete(features, query_features, score_threshold=None, positive_ids=[0]):
-        features /= features.norm(dim=-1, keepdim=True)
-        query_features /= query_features.norm(dim=-1, keepdim=True)
-        scores = features.half() @ query_features.T.half()  # (N_points, n_texts)
-        if scores.shape[-1] == 1:
-            scores = scores[:, 0]  # (N_points,)
-            mask = (scores >= score_threshold).float()
-        else:
-            scores = torch.nn.functional.softmax(scores, dim=-1)  # (N_points, n_texts)
-            
-            scores[:, positive_ids[0]] = scores[:, positive_ids].sum(-1)  # (N_points, )
-            mask = torch.isin(torch.argmax(scores, dim=-1), torch.tensor(positive_ids).cuda())
-            
-            if score_threshold is not None:
-                scores = scores[:, positive_ids].sum(-1)  # (N_points, )
-                mask = torch.bitwise_or((scores >= score_threshold), mask).float()
-        
-        return mask
-
-
 def render_feature_map(
     viewpoint_camera:list,
     voxel_xyz:torch.tensor,
@@ -102,33 +64,34 @@ def render_feature_map(
         prefiltered=False,
         debug=debug
     )
-    semantic_feature = torch.ones((voxel_xyz.shape[0]), 1).unsqueeze(1).to(voxel_xyz)
-    semantic_feature.requires_grad_(False)
-    rasterizer = GaussianRasterizer(raster_settings=raster_settings).to(voxel_xyz)
+    depth_feature = torch.mm(torch.cat([voxel_xyz, torch.ones((voxel_xyz.shape[0]), 1).to(voxel_xyz)], -1), viewpoint_camera[2])[:, 2].unsqueeze(1).unsqueeze(1)  # p_view.z
+    depth_feature = depth_feature / torch.abs(depth_feature).max() # normalize p_view.z
+    depth_feature.requires_grad_(False)
+    rasterizer = GaussianRasterizer(raster_settings=raster_settings)
+
     means3D = voxel_xyz   # pc position
     means2D = screenspace_points # the shape is the same as means3D
     opacity = opacity  # 不透明度 the shape is the same as means3D   
     scales = scaling  # 尺度
     rotations = rotations  # 旋转参数
-    # depth_feature = depth.unsqueeze(1) 
-    rendered_image, feature_map, radii, depth = rasterizer(
+    # depth_feature = depth.unsqueeze(1)
+    rendered_image, depth_feature, radii = rasterizer(
         means3D = means3D,
         means2D = means2D,
         shs = None,  # None
         colors_precomp = voxel_features,  # feature map
-        semantic_feature = semantic_feature, 
+        semantic_feature = depth_feature, 
         opacities = opacity,
         scales = scales,
         rotations = rotations,
         cov3D_precomp = None)
+    # print("depth_feature", depth_feature)
 
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
-    return rendered_image, depth
     # return {"render": rendered_image,
     #         "viewspace_points": screenspace_points,
     #         "visibility_filter" : radii > 0,
     #         "radii": radii,
-    #         'feature_map': feature_map,
-    #         "depth": depth} ###d
-
+    #         'depth_feature': depth_feature}
+    return rendered_image, depth_feature

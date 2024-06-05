@@ -29,16 +29,19 @@ namespace BACKWARD
 		const float2* means2D,
 		const float4* conic_opacity,
 		const float* colors,
-		const float* semantic_feature, 
+		const float* semantic_feature,
+		const float* depths, 
 		const float* final_Ts,
 		const uint32_t* n_contrib,
 		const float* dL_dpixels,
-		const float* dL_dfeaturepixels, 
+		const float* dL_dfeaturepixels,
+		const float* dL_depths,
 		float3* dL_dmean2D,
 		float4* dL_dconic2D,
 		float* dL_dopacity,
 		float* dL_dcolors,
-		float* dL_dsemantic_feature, 
+		float* dL_dsemantic_feature,
+		float* dL_dz,
 		float* collected_semantic_feature 
 		);
 
@@ -64,7 +67,8 @@ namespace BACKWARD
 		float* dL_dcov3D,
 		float* dL_dsh,
 		glm::vec3* dL_dscale,
-		glm::vec4* dL_drot);
+		glm::vec4* dL_drot,
+		float* dL_dz);
 }
 
 #endif

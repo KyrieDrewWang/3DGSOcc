@@ -354,6 +354,7 @@ __global__ void preprocessCUDA(
 	const glm::vec4* rotations,
 	const float scale_modifier,
 	const float* proj,
+	const float* view,
 	const glm::vec3* campos,
 	const float3* dL_dmean2D,
 	glm::vec3* dL_dmeans,
@@ -361,7 +362,8 @@ __global__ void preprocessCUDA(
 	float* dL_dcov3D,
 	float* dL_dsh,
 	glm::vec3* dL_dscale,
-	glm::vec4* dL_drot)
+	glm::vec4* dL_drot,
+	float* dL_dz)
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= P || !(radii[idx] > 0))
@@ -382,6 +384,12 @@ __global__ void preprocessCUDA(
 	dL_dmean.y = (proj[4] * m_w - proj[7] * mul1) * dL_dmean2D[idx].x + (proj[5] * m_w - proj[7] * mul2) * dL_dmean2D[idx].y;
 	dL_dmean.z = (proj[8] * m_w - proj[11] * mul1) * dL_dmean2D[idx].x + (proj[9] * m_w - proj[11] * mul2) * dL_dmean2D[idx].y;
 
+	//aggregate depth gradients
+	float dldz = dL_dz[idx];
+	dL_dmean.x += dldz * view[2];
+	dL_dmean.y += dldz * view[6];
+	dL_dmean.z += dldz * view[10];
+	
 	// That's the second part of the mean gradient. Previous computation
 	// of cov2D and following SH conversion also affects it.
 	dL_dmeans[idx] += dL_dmean;
@@ -406,16 +414,19 @@ renderCUDA(
 	const float2* __restrict__ points_xy_image,
 	const float4* __restrict__ conic_opacity,
 	const float* __restrict__ colors,
-	const float* __restrict__ semantic_feature, 
+	const float* __restrict__ semantic_feature,
+	const float* __restrict__ depths,
 	const float* __restrict__ final_Ts,
 	const uint32_t* __restrict__ n_contrib,
 	const float* __restrict__ dL_dpixels,
-	const float* __restrict__ dL_dfeaturepixels, 
+	const float* __restrict__ dL_dfeaturepixels,
+	const float* __restrict__ dL_depths, 
 	float3* __restrict__ dL_dmean2D,
 	float4* __restrict__ dL_dconic2D,
 	float* __restrict__ dL_dopacity,
 	float* __restrict__ dL_dcolors,
-	float* __restrict__ dL_dsemantic_feature, 
+	float* __restrict__ dL_dsemantic_feature,
+	float* __restrict__ dL_dz,
 	float* collected_semantic_feature) 
 {
 	// We rasterize again. Compute necessary block info.
@@ -439,6 +450,7 @@ renderCUDA(
 	__shared__ float2 collected_xy[BLOCK_SIZE];
 	__shared__ float4 collected_conic_opacity[BLOCK_SIZE];
 	__shared__ float collected_colors[C * BLOCK_SIZE];
+	__shared__ float collected_depths[BLOCK_SIZE];
 
 
 	// In the forward, we stored the final value for T, the
@@ -455,17 +467,23 @@ renderCUDA(
 	float accum_semantic_feature_rec[NUM_SEMANTIC_CHANNELS] = { 0 }; 
 
 	float dL_dpixel[C];
-	float dL_dfeaturepixel[NUM_SEMANTIC_CHANNELS]; 
+	float dL_dfeaturepixel[NUM_SEMANTIC_CHANNELS];
+	float dL_depth;
+	float accum_depth_rec = 0;
+
+
 	if (inside)
 		for (int i = 0; i < C; i++)
 			dL_dpixel[i] = dL_dpixels[i * H * W + pix_id];
+			dL_depth = dL_depths[pix_id];
 		for (int i = 0; i < NUM_SEMANTIC_CHANNELS; i++) 
 			dL_dfeaturepixel[i] = dL_dfeaturepixels[i * H * W + pix_id];
 
 
 	float last_alpha = 0;
 	float last_color[C] = { 0 };
-	float last_semantic_feature[NUM_SEMANTIC_CHANNELS] = { 0 }; 
+	float last_semantic_feature[NUM_SEMANTIC_CHANNELS] = { 0 };
+	float last_depth = 0; 
 
 	// Gradient of pixel coordinate w.r.t. normalized 
 	// screen-space viewport corrdinates (-1 to 1)
@@ -487,6 +505,7 @@ renderCUDA(
 			collected_conic_opacity[block.thread_rank()] = conic_opacity[coll_id];
 			for (int i = 0; i < C; i++)
 				collected_colors[i * BLOCK_SIZE + block.thread_rank()] = colors[coll_id * C + i];
+				collected_depths[block.thread_rank()] = depths[coll_id];
 		}
 		block.sync();
 
@@ -535,6 +554,10 @@ renderCUDA(
 				// many that were affected by this Gaussian.
 				atomicAdd(&(dL_dcolors[global_id * C + ch]), dchannel_dcolor * dL_dchannel);
 			}
+			const float c_d = collected_depths[j];
+			accum_depth_rec = last_alpha * last_depth + (1.f - last_alpha) * accum_depth_rec;
+			last_depth = c_d;
+			dL_dalpha += (c_d - accum_depth_rec) * dL_depth;
 
 
 			for (int ch = 0; ch < NUM_SEMANTIC_CHANNELS; ch++) 
@@ -545,6 +568,10 @@ renderCUDA(
 				last_semantic_feature[ch] = f;
 
 				const float dL_dfeaturechannel = dL_dfeaturepixel[ch];
+				/**************************************************************************************************/
+				dL_dalpha += (f - accum_semantic_feature_rec[ch]) * dL_dfeaturechannel; 
+				/**************************************************************************************************/
+				
 				// Update the gradients w.r.t. semnatic feature of the Gaussian. 
 				// Atomic, since this pixel is just one of potentially
 				// many that were affected by this Gaussian.
@@ -556,6 +583,7 @@ renderCUDA(
 			dL_dalpha *= T;
 			// Update last alpha (to be used in the next iteration)
 			last_alpha = alpha;
+
 
 			// Account for fact that alpha also influences how much of
 			// the background color is added if nothing left to blend
@@ -583,9 +611,11 @@ renderCUDA(
 
 			// Update gradients w.r.t. opacity of the Gaussian
 			atomicAdd(&(dL_dopacity[global_id]), G * dL_dalpha);
+			atomicAdd(&(dL_dz[global_id]),  alpha * T * dL_depth);
 		}
 	}
 }
+
 
 void BACKWARD::preprocess(
 	int P, int D, int M,
@@ -609,7 +639,8 @@ void BACKWARD::preprocess(
 	float* dL_dcov3D,
 	float* dL_dsh,
 	glm::vec3* dL_dscale,
-	glm::vec4* dL_drot)
+	glm::vec4* dL_drot,
+	float* dL_dz)
 {
 	// Propagate gradients for the path of 2D conic matrix computation. 
 	// Somewhat long, thus it is its own kernel rather than being part of 
@@ -642,6 +673,7 @@ void BACKWARD::preprocess(
 		(glm::vec4*)rotations,
 		scale_modifier,
 		projmatrix,
+		viewmatrix,
 		campos,
 		(float3*)dL_dmean2D,
 		(glm::vec3*)dL_dmean3D,
@@ -649,7 +681,8 @@ void BACKWARD::preprocess(
 		dL_dcov3D,
 		dL_dsh,
 		dL_dscale,
-		dL_drot);
+		dL_drot,
+		dL_dz);
 }
 
 void BACKWARD::render(
@@ -661,16 +694,19 @@ void BACKWARD::render(
 	const float2* means2D,
 	const float4* conic_opacity,
 	const float* colors,
-	const float* semantic_feature, 
+	const float* semantic_feature,
+	const float* depths, 
 	const float* final_Ts,
 	const uint32_t* n_contrib,
 	const float* dL_dpixels,
-	const float* dL_dfeaturepixels, 
+	const float* dL_dfeaturepixels,
+	const float* dL_depths, 
 	float3* dL_dmean2D,
 	float4* dL_dconic2D,
 	float* dL_dopacity,
 	float* dL_dcolors,
-	float* dL_dsemantic_feature, 
+	float* dL_dsemantic_feature,
+	float* dL_dz,
 	float* collected_semantic_feature) 
 	
 {
@@ -682,16 +718,19 @@ void BACKWARD::render(
 		means2D,
 		conic_opacity,
 		colors,
-		semantic_feature, 
+		semantic_feature,
+		depths, 
 		final_Ts,
 		n_contrib,
 		dL_dpixels,
-		dL_dfeaturepixels, 
+		dL_dfeaturepixels,
+		dL_depths, 
 		dL_dmean2D,
 		dL_dconic2D,
 		dL_dopacity,
 		dL_dcolors,
-		dL_dsemantic_feature, 
+		dL_dsemantic_feature,
+		dL_dz,
 		collected_semantic_feature 
 		);
 }

@@ -217,8 +217,7 @@ int CudaRasterizer::Rasterizer::forward(
 	const float tan_fovx, float tan_fovy,
 	const bool prefiltered,
 	float* out_color,
-	float* out_feature_map,
-	float* out_depth,
+	float* out_feature_map, 
 	int* radii,
 	bool debug)
 {
@@ -328,15 +327,13 @@ int CudaRasterizer::Rasterizer::forward(
 		width, height,
 		geomState.means2D,
 		feature_ptr,
-		semantic_feature,
-		geomState.depths,
+		semantic_feature, 
 		geomState.conic_opacity,
 		imgState.accum_alpha,
 		imgState.n_contrib,
 		background,
 		out_color,
-		out_feature_map,
-		out_depth), debug)
+		out_feature_map), debug) 
 
 	return num_rendered;
 }
@@ -365,8 +362,7 @@ void CudaRasterizer::Rasterizer::backward(
 	char* binning_buffer,
 	char* img_buffer,
 	const float* dL_dpix,
-	const float* dL_dfeaturepix,
-	const float* dL_depths,
+	const float* dL_dfeaturepix, 
 	float* dL_dmean2D,
 	float* dL_dconic,
 	float* dL_dopacity,
@@ -377,7 +373,6 @@ void CudaRasterizer::Rasterizer::backward(
 	float* dL_dsh,
 	float* dL_dscale,
 	float* dL_drot,
-	float* dL_dz,
 	bool debug)
 {
 	GeometryState geomState = GeometryState::fromChunk(geom_buffer, P);
@@ -401,7 +396,6 @@ void CudaRasterizer::Rasterizer::backward(
 	const float* color_ptr = (colors_precomp != nullptr) ? colors_precomp : geomState.rgb;
 	float* collected_semantic_feature; 
 	cudaMalloc((void**)&collected_semantic_feature, NUM_SEMANTIC_CHANNELS * BLOCK_SIZE * sizeof(float)); 
-	const float* depth_ptr = geomState.depths;
 	CHECK_CUDA(BACKWARD::render(
 		tile_grid,
 		block,
@@ -412,21 +406,17 @@ void CudaRasterizer::Rasterizer::backward(
 		geomState.means2D,
 		geomState.conic_opacity,
 		color_ptr,
-		semantic_feature,
-		depth_ptr, 
+		semantic_feature, 
 		imgState.accum_alpha,
 		imgState.n_contrib,
 		dL_dpix,
-		dL_dfeaturepix,
-		dL_depths,
+		dL_dfeaturepix, 
 		(float3*)dL_dmean2D,
 		(float4*)dL_dconic,
 		dL_dopacity,
 		dL_dcolor,
-		dL_dsemantic_feature,
-		dL_dz,
-		collected_semantic_feature
-		), debug) 
+		dL_dsemantic_feature, 
+		collected_semantic_feature), debug) 
 		cudaFree(collected_semantic_feature);
 
 
@@ -456,6 +446,5 @@ void CudaRasterizer::Rasterizer::backward(
 		dL_dcov3D,
 		dL_dsh,
 		(glm::vec3*)dL_dscale,
-		(glm::vec4*)dL_drot,
-		dL_dz), debug)
+		(glm::vec4*)dL_drot), debug)
 }

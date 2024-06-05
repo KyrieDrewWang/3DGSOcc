@@ -24,7 +24,6 @@ class SplattingOcc(BEVStereo4DOCC):
                  out_dim=32,
                  num_classes=18,
                  test_threshold=0.,
-                 opacity_threshold = 0.,
                  use_lss_depth_loss=True,
                  use_3d_loss=False,
                  use_gs_loss=True,
@@ -34,7 +33,6 @@ class SplattingOcc(BEVStereo4DOCC):
                  **kwargs):
         super(SplattingOcc, self).__init__(use_predicter=False, **kwargs)
         self.out_dim = out_dim
-        self.opacity_threshold = opacity_threshold
         self.use_gs_loss = use_gs_loss
         self.use_3d_loss = use_3d_loss
         self.test_threshold = test_threshold
@@ -79,10 +77,10 @@ class SplattingOcc(BEVStereo4DOCC):
             nn.Linear(self.out_dim*2, num_classes-1),
         )
         self.density_act=density2opacity
-        # self.opacity = nn.Sequential(
+        # self.cov3D_precomp = nn.Sequential(
         #     nn.Linear(self.out_dim, self.out_dim*2),
         #     nn.Softplus(),
-        #     nn.Linear(self.out_dim*2, 1),
+        #     nn.Linear(self.out_dim*2, 6),
         #     nn.Softplus()
         # )
         if self.use_gs_loss:
@@ -153,6 +151,7 @@ class SplattingOcc(BEVStereo4DOCC):
         density = density_prob[..., 0]
         semantic = self.semantic_mlp(voxel_feats)
         density = self.density_act(density)
+        # cov3D_precomp = self.cov3D_precomp(voxel_feats)
         # print("density:", str(density.max().item()), "-", str(density.min().item()), '\n')
         # print("semantic:", str(semantic.max().item()), "-", str(semantic.min().item()), '\n')
         losses = dict()
@@ -164,7 +163,7 @@ class SplattingOcc(BEVStereo4DOCC):
             losses.update(loss_occ)
         
         if self.use_gs_loss:
-            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density)
+            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density)#, cov3D_precomp)
             losses.update(loss_gaussian)
             
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)

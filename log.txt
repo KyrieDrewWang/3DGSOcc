@@ -369,4 +369,41 @@ with lssdepth loss
 use aux weights
 32192 MiB
 
-=======v3.40
+=======v4.1
+render image shape (900, 1600)
+auxilary frames []
+lr 1e-4
+render depth during raster
+the covariance is learned
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+32016 MiB
+
+
+=======v4.2
+render image shape (450, 800)
+auxilary frames [-1, 1]
+lr 1e-4
+render depth during raster
+the covariance is learned
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+32016 MiB
+
+
+=======v4.3
+render image shape (450, 800)
+auxilary frames [-1, 1]
+lr 1e-4
+render depth during raster
+the covariance is learned
+use_3d_loss
+the feature maps are interpolated instead of interpolate the labels
+use aux weights on both depth and semantic
+with lssdepth loss
+use aux weights
+32016 MiB
