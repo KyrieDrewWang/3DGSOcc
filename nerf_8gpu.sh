@@ -34,18 +34,17 @@ MASTER_PORT="29301"
 #JOB ID
 BATCH_JOB_ID=$5
 
-# logs      --auto-resume\
+# logs 
 echo "$NODE_RANK,$NODES,$NPROC_PER_NODE,$MASTER_ADDR,$BATCH_JOB_ID"
 OUTPUT_LOG="train_rank${NODE_RANK}_${BATCH_JOB_ID}.log"
 
-WORK_DIR="render_1"
+WORK_DIR="nerf_1"
 
 torchrun \
      --nnodes="${NODES}" \
      --node_rank="${NODE_RANK}" \
      --nproc_per_node="${NPROC_PER_NODE}" \
      --master_addr="${MASTER_ADDR}" \
-     --max_restarts=5 \
      --master_port="${MASTER_PORT}" \
      tools/train.py \
      "configs/renderocc/renderocc-7frame.py" \

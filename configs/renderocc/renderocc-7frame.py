@@ -27,8 +27,8 @@ data = dict(
         use_rays=True,
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
-        aux_frames=[-3,-2,-1,1,2,3],
-        max_ray_nums=38400,
+        aux_frames=[],
+        max_ray_nums=5400,
     )
 )
 

@@ -7,7 +7,7 @@
 GPUS=4
 
 ### 脚本名称
-RANK_SCRIPT="socc_8gpu.sh"
+RANK_SCRIPT="test.sh"
 
 ### Job Path
 JOB_PATH=`pwd`

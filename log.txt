@@ -407,3 +407,35 @@ use aux weights on both depth and semantic
 with lssdepth loss
 use aux weights
 32016 MiB
+
+=======v1.0
+render_img_shape=(900, 1600)
+aux_frames=[],
+density2opacity
+cov3D_precomp fixed
+scales=0.5
+36396 MiB
+
+=======v1.1
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+cov3D_precomp fixed
+scales=0.5
+32912 MiB
+
+=======v1.2
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+cov3D_precomp fixed 
+scales=0.4
+32914 MiB
+
+=======v1.3
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+cov3D_precomp learned 
+scales=0.4
+32948 MiB

@@ -23,7 +23,7 @@ class RenderOcc(BEVStereo4DOCC):
                  out_dim=32,
                  num_classes=18,
                  nerf_head=None,
-                 test_threshold=8.5,
+                 test_threshold=0., #8.5,
                  use_lss_depth_loss=True,
                  use_3d_loss=False,
                  balance_cls_weight=True,

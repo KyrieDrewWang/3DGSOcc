@@ -5,15 +5,14 @@ use_sam_mask=False
 model = dict(
     type='SplattingOcc',
     final_softplus=True,
-    use_3d_loss=True,
+    use_3d_loss=False,
     use_lss_depth_loss=True,
     use_gs_loss=True,
-    test_threshold=0.,
+    test_threshold=0.01,
     gauss_head=dict(
         type='GausSplatingHead',
         point_cloud_range= [-40, -40, -1, 40, 40, 5.4],
         voxel_size=0.4,
-        radius=53,
         voxel_feature_dim=17,
         num_classes=18,
         gaussian_sem_weight=1.0,
@@ -31,14 +30,14 @@ model = dict(
     ),
 )
 
-optimizer = dict(type='AdamW', lr=1e-4, weight_decay=1e-2)
+optimizer = dict(type='AdamW', lr=1e-3, weight_decay=1e-2)
 
 depth_gt_path = 'data/nuscenes/depth_gt'
 semantic_gt_path = 'data/nuscenes/seg_gt_lidarseg'
 
 data = dict(
     samples_per_gpu=2,  # with 8 GPU, Batch Size=16 
-    workers_per_gpu=0,
+    workers_per_gpu=2,
     train=dict(
         use_rays=False,
         use_camera=True,
@@ -47,7 +46,7 @@ data = dict(
         aux_frames=[],
         # aux_frames=[-3,-2,-1,1,2,3],
         znear=0.01, 
-        zfar=50, # 100.0
+        zfar=60, # 100.0
         render_img_shape=render_img_shape,
         use_sam=use_sam,
         use_sam_mask=use_sam_mask,

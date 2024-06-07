@@ -3,8 +3,7 @@ from __future__ import division
 import argparse
 import copy
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"]="8"
-# os.environ["CUDA_LAUNCH_BLOCKING"]="1"
+
 import time
 import warnings
 from os import path as osp

@@ -786,7 +786,6 @@ class LSSViewTransformerBEVDepth(LSSViewTransformer):
     def get_depth_loss(self, depth_labels, depth_preds):
         depth_labels = self.get_downsampled_gt_depth(depth_labels)
         depth_preds = depth_preds.permute(0, 2, 3, 1).contiguous().view(-1, self.D)
-        # depth_preds = nn.Sigmoid()(depth_preds)
         fg_mask = torch.max(depth_labels, dim=1).values > 0.0
         depth_preds_new = torch.masked_select(depth_preds, fg_mask.unsqueeze(1))
         depth_labels_new = torch.masked_select(depth_labels, fg_mask.unsqueeze(1))
