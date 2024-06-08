@@ -29,7 +29,7 @@ NODE_RANK=$3
 
 # master
 MASTER_ADDR=$4
-MASTER_PORT="28301"
+MASTER_PORT="29501"
 
 #JOB ID
 BATCH_JOB_ID=$5
@@ -38,7 +38,7 @@ BATCH_JOB_ID=$5
 echo "$NODE_RANK,$NODES,$NPROC_PER_NODE,$MASTER_ADDR,$BATCH_JOB_ID"
 OUTPUT_LOG="train_rank${NODE_RANK}_${BATCH_JOB_ID}.log"
 
-PTH_DIR="render_1/latest.pth"
+PTH_DIR="nerf_1/latest.pth"
 
 torchrun \
      --nnodes="${NODES}" \
