@@ -175,7 +175,7 @@ class GausSplatingHead(nn.Module):
                     gt_sem = gt_sem.reshape(-1).long()
 
                     # check whether to use aux weight
-                    if self.use_aux_weight and c_id in [0, 1, 2, 3, 4, 5]:
+                    if self.use_aux_weight and c_id not in [0, 1, 2, 3, 4, 5]:
                         weight_t = torch.full((gt_sem.shape), self.weight_adj).to(gt_sem.device)
                         dynamic_mask = (self.dynamic_class.to(gt_sem)==gt_sem.unsqueeze(1)).any(-1)
                         weight_t[dynamic_mask] = self.weight_dyn

@@ -134,28 +134,27 @@ class GausSplatingHead(nn.Module):
         # self.rot_act = torch.nn.functional.normalize
         dist = torch.clamp_min(distCUDA2(self.get_presudo_xyz()), 0.0000001)
         scales = torch.log(torch.sqrt(dist))[...,None].repeat(1, 3)
-        scales = torch.exp(scales).cuda()
+        scales = torch.exp(scales).cuda() / 2.
         # self.scales = scales.requires_grad_(False).cuda()
         # self.scales = nn.Parameter(scales)
         rots = torch.zeros((pc_xyz.shape[0], 4))
         rots[:, 0] = 1  
-        rots = torch.nn.functional.normalize(rots).cuda()    
         # self.rots = rots.requires_grad_(False).cuda()
         # self.rots = nn.Parameter(rots)
-        cov3D_precomp = build_covariance_from_scaling_rotation(scales, 1, rots).cuda()
-        self.cov3D_precomp = nn.Parameter(cov3D_precomp).requires_grad_(True)
+        self.cov3D_precomp = build_covariance_from_scaling_rotation(scales, 1, rots.cuda()).cuda().requires_grad_(False)
+        # self.cov3D_precomp = nn.Parameter(cov3D_precomp).requires_grad_(False)
         self.render_image_height=render_img_shape[0]
         self.render_image_width=render_img_shape[1]
-        if use_sam or use_sam_mask:
-            self.sam_proj = torch.nn.Sequential(
-                torch.nn.Linear(256, 64, bias=True),
-                torch.nn.LayerNorm(64),
-                torch.nn.LeakyReLU(),
-                torch.nn.Linear(64, 64, bias=True),
-                torch.nn.LayerNorm(64),
-                torch.nn.LeakyReLU(),
-                torch.nn.Linear(64, voxel_feature_dim, bias=True)
-            )
+        # if use_sam or use_sam_mask:
+        #     self.sam_proj = torch.nn.Sequential(
+        #         torch.nn.Linear(256, 64, bias=True),
+        #         torch.nn.LayerNorm(64),
+        #         torch.nn.LeakyReLU(),
+        #         torch.nn.Linear(64, 64, bias=True),
+        #         torch.nn.LayerNorm(64),
+        #         torch.nn.LeakyReLU(),
+        #         torch.nn.Linear(64, voxel_feature_dim, bias=True)
+        #     )
         if balance_cls_weight:
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
         else:
@@ -163,7 +162,7 @@ class GausSplatingHead(nn.Module):
         self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="none")
         self.gaussian_sem_weight=gaussian_sem_weight
         self.gaussian_dep_weight=gaussian_dep_weight
-        self.depth_loss = silog_loss()
+        # self.depth_loss = silog_loss()
 
     def get_presudo_xyz(self):
         x_lim_num, y_lim_num, z_lim_num = self.x_lim_num, self.y_lim_num, self.z_lim_num
@@ -201,8 +200,6 @@ class GausSplatingHead(nn.Module):
             # gaussian paramteres
             opacity_i = opacity[batch_id]
             opacity_i = opacity_i.reshape(-1,1)
-            # cov3D_precomp_i = cov3D_precomp[batch_id]
-            # cov3D_precomp_i = cov3D_precomp_i.reshape(-1,6)
             vox_feature_i = semantic_features[batch_id]
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_render_sem = 0

@@ -439,3 +439,29 @@ density as opacity
 cov3D_precomp learned 
 scales=0.4
 32948 MiB
+
+=======v1.4
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+cov3D_precomp fixed 
+scales=0.4
+32914 MiB
+
+=======v1.5
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+cov3D_precomp fixed 
+scales=0.4
+znear=8.5
+32914 MiB
+
+=======v1.6
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+cov3D_precomp fixed 
+scales=0.2
+znear=0.01
+32914 MiB

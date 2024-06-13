@@ -8,7 +8,7 @@ model = dict(
     use_3d_loss=False,
     use_lss_depth_loss=True,
     use_gs_loss=True,
-    test_threshold=0.5,
+    test_threshold=0.,
     gauss_head=dict(
         type='GausSplatingHead',
         point_cloud_range= [-40, -40, -1, 40, 40, 5.4],
@@ -37,7 +37,7 @@ semantic_gt_path = 'data/nuscenes/seg_gt_lidarseg'
 
 data = dict(
     samples_per_gpu=2,  # with 8 GPU, Batch Size=16 
-    workers_per_gpu=2,
+    workers_per_gpu=4,
     train=dict(
         use_rays=False,
         use_camera=True,
@@ -46,7 +46,7 @@ data = dict(
         aux_frames=[],
         # aux_frames=[-3,-2,-1,1,2,3],
         znear=0.01, 
-        zfar=60, # 100.0
+        zfar=40, # 100.0
         render_img_shape=render_img_shape,
         use_sam=use_sam,
         use_sam_mask=use_sam_mask,
