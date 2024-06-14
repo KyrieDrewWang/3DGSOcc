@@ -476,6 +476,8 @@ znear=0.01
 density_mlp end with Sigmoid instead of softplus
 32914 MiB
 
+
+
 =======v1.8 
 render_img_shape=(900, 1600)
 aux_frames=[],
@@ -511,4 +513,13 @@ scale and rot fixed
 scales=0.4
 znear=0.01
 density_mlp end with Sigmoid instead of softplus
+32914 MiB
+
+=======v1.12
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.4
+znear=0.01
 32914 MiB
