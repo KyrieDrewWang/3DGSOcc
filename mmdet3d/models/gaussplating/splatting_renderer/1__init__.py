@@ -7,8 +7,7 @@ def render_feature_map(
     viewpoint_camera:list,
     voxel_xyz:torch.tensor,
     opacity:torch.tensor,
-    scaling:torch.tensor,
-    rotations:torch.tensor,
+    cov3D_precomp:torch.tensor,
     voxel_features:torch.tensor,
     active_sh_degree=0,
     feature_dim=17,
@@ -72,9 +71,9 @@ def render_feature_map(
         means3D = means3D,
         means2D = means2D,
         sh = torch.Tensor([]),  # None
-        scales = scaling,
-        rotations = rotations,
-        cov3Ds_precomp = torch.Tensor([]),
+        scales = torch.Tensor([]),
+        rotations = torch.Tensor([]),
+        cov3Ds_precomp = cov3D_precomp,
         raster_settings = raster_settings,
 )
     return rendered_image

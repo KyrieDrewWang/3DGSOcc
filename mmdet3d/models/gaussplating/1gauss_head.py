@@ -4,7 +4,7 @@ from .splatting_renderer import render_feature_map
 import numpy as np
 from scipy.spatial import KDTree
 from torch.autograd import Variable
-from torchvision.transforms import functional as F
+import torch.nn.functional as F
 from .utils import silog_loss
 
 
@@ -28,6 +28,61 @@ def distCUDA2(points):
 
 def l1_loss(network_output, gt):
     return torch.abs((network_output - gt)).mean()
+def strip_lowerdiag(L):
+    uncertainty = torch.zeros((L.shape[0], 6), dtype=torch.float, device="cuda")
+
+    uncertainty[:, 0] = L[:, 0, 0]
+    uncertainty[:, 1] = L[:, 0, 1]
+    uncertainty[:, 2] = L[:, 0, 2]
+    uncertainty[:, 3] = L[:, 1, 1]
+    uncertainty[:, 4] = L[:, 1, 2]
+    uncertainty[:, 5] = L[:, 2, 2]
+    return uncertainty
+
+def strip_symmetric(sym):
+    return strip_lowerdiag(sym)
+
+
+def build_rotation(r):
+    norm = torch.sqrt(r[:,0]*r[:,0] + r[:,1]*r[:,1] + r[:,2]*r[:,2] + r[:,3]*r[:,3])
+
+    q = r / norm[:, None]
+
+    R = torch.zeros((q.size(0), 3, 3), device='cuda')
+
+    r = q[:, 0]
+    x = q[:, 1]
+    y = q[:, 2]
+    z = q[:, 3]
+
+    R[:, 0, 0] = 1 - 2 * (y*y + z*z)
+    R[:, 0, 1] = 2 * (x*y - r*z)
+    R[:, 0, 2] = 2 * (x*z + r*y)
+    R[:, 1, 0] = 2 * (x*y + r*z)
+    R[:, 1, 1] = 1 - 2 * (x*x + z*z)
+    R[:, 1, 2] = 2 * (y*z - r*x)
+    R[:, 2, 0] = 2 * (x*z - r*y)
+    R[:, 2, 1] = 2 * (y*z + r*x)
+    R[:, 2, 2] = 1 - 2 * (x*x + y*y)
+    return R
+
+
+def build_scaling_rotation(s, r):
+    L = torch.zeros((s.shape[0], 3, 3), dtype=torch.float, device="cuda")
+    R = build_rotation(r)
+
+    L[:,0,0] = s[:,0]
+    L[:,1,1] = s[:,1]
+    L[:,2,2] = s[:,2]
+
+    L = R @ L
+    return L
+
+def build_covariance_from_scaling_rotation(scaling, scaling_modifier, rotation):
+    L = build_scaling_rotation(scaling_modifier * scaling, rotation)
+    actual_covariance = L @ L.transpose(1, 2)
+    symm = strip_symmetric(actual_covariance)
+    return symm
 
 from mmdet.models import HEADS
 @HEADS.register_module()
@@ -73,35 +128,33 @@ class GausSplatingHead(nn.Module):
         self.z_lim_num=z_lim_num
         # parameters for splatting rasterizing
         pc_xyz = self.get_presudo_xyz()
-        self.pc_xyz = pc_xyz.requires_grad_(False)
+        self.pc_xyz = pc_xyz.requires_grad_(False).cuda()
         # self.pc_xyz = nn.Parameter(pc_xyz)
+        # self.scale_act = torch.exp
+        # self.rot_act = torch.nn.functional.normalize
         dist = torch.clamp_min(distCUDA2(self.get_presudo_xyz()), 0.0000001)
         scales = torch.log(torch.sqrt(dist))[...,None].repeat(1, 3)
-        self.scales = scales.requires_grad_(False)
+        scales = torch.exp(scales).cuda() / 2.
+        # self.scales = scales.requires_grad_(False).cuda()
         # self.scales = nn.Parameter(scales)
         rots = torch.zeros((pc_xyz.shape[0], 4))
-        rots[:, 0] = 1        
-        self.rots = rots.requires_grad_(False)
+        rots[:, 0] = 1  
+        # self.rots = rots.requires_grad_(False).cuda()
         # self.rots = nn.Parameter(rots)
-        self.scale_act = torch.exp
-        self.rot_act = torch.nn.functional.normalize
+        self.cov3D_precomp = build_covariance_from_scaling_rotation(scales, 1, rots.cuda()).cuda().requires_grad_(False)
+        # self.cov3D_precomp = nn.Parameter(cov3D_precomp).requires_grad_(False)
         self.render_image_height=render_img_shape[0]
         self.render_image_width=render_img_shape[1]
-        if use_sam or use_sam_mask:
-            self.sam_proj = torch.nn.Sequential(
-                torch.nn.Linear(256, 64, bias=True),
-                torch.nn.LayerNorm(64),
-                torch.nn.LeakyReLU(),
-                torch.nn.Linear(64, 64, bias=True),
-                torch.nn.LayerNorm(64),
-                torch.nn.LeakyReLU(),
-                torch.nn.Linear(64, voxel_feature_dim, bias=True)
-            )
-        # self.splatting_semantic_mlp = nn.Sequential(
-        #     nn.Linear(self.voxel_feature_dim, self.voxel_feature_dim*2),
-        #     nn.Softplus(),
-        #     nn.Linear(self.voxel_feature_dim*2, num_classes-1),
-        # )
+        # if use_sam or use_sam_mask:
+        #     self.sam_proj = torch.nn.Sequential(
+        #         torch.nn.Linear(256, 64, bias=True),
+        #         torch.nn.LayerNorm(64),
+        #         torch.nn.LeakyReLU(),
+        #         torch.nn.Linear(64, 64, bias=True),
+        #         torch.nn.LayerNorm(64),
+        #         torch.nn.LeakyReLU(),
+        #         torch.nn.Linear(64, voxel_feature_dim, bias=True)
+        #     )
         if balance_cls_weight:
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
         else:
@@ -109,7 +162,7 @@ class GausSplatingHead(nn.Module):
         self.bce_contrastive_loss = nn.CrossEntropyLoss(weight=self.class_weights, reduction="none")
         self.gaussian_sem_weight=gaussian_sem_weight
         self.gaussian_dep_weight=gaussian_dep_weight
-        self.depth_loss = silog_loss()
+        # self.depth_loss = silog_loss()
 
     def get_presudo_xyz(self):
         x_lim_num, y_lim_num, z_lim_num = self.x_lim_num, self.y_lim_num, self.z_lim_num
@@ -133,45 +186,47 @@ class GausSplatingHead(nn.Module):
         voxel_points = torch.stack([X, Y, Z], dim=-1).reshape(-1, 3)
         return voxel_points
     
-    def forward(self, voxel_feats, cameras, opacity, **kwargs):
+    def forward(self, semantic_features, cameras, opacity, **kwargs):
         loss_render_sem_batch = 0
-        for batch_id in range(voxel_feats.shape[0]):
+        batch_num = semantic_features.shape[0]
+        for batch_id in range(batch_num):
             view_points = [c[batch_id] for c in cameras[:-4]]
-            vox_feature_i = voxel_feats[batch_id]
-            opacity_i = opacity[batch_id]
-            sam_embd_batch_id = cameras[-4][batch_id]
+            # SAM
+            # sam_embd_batch_id = cameras[-4][batch_id]
+            # sam_mask_batch_id = cameras[-3][batch_id]
+            # label
             gt_sem_batch_id = cameras[-2][batch_id]
             sem_label_mask_batch_id  = cameras[-1][batch_id]
-            # depth_label_batch_id = cameras[-5][batch_id]
-            sam_mask_batch_id = cameras[-3][batch_id]
+            # gaussian paramteres
+            opacity_i = opacity[batch_id]
             opacity_i = opacity_i.reshape(-1,1)
+            vox_feature_i = semantic_features[batch_id]
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_render_sem = 0
-            num_label = 0
             for c_id in range(view_points[0].shape[0]):
                 view_point = [p[c_id] for p in view_points]
-                rendered_semantic_map = render_feature_map(
+                rendered_feature_map = render_feature_map(
                     feature_dim = self.voxel_feature_dim,
                     viewpoint_camera=view_point,
-                    voxel_xyz=self.pc_xyz.to(vox_feature_i), # n*3
-                    opacity=opacity_i, # n*1
-                    scaling=self.scale_act((self.scales.to(vox_feature_i))), # n*3
-                    rotations=self.rot_act(self.rots.to(vox_feature_i)), # n*4
+                    opacity = opacity_i,
+                    voxel_xyz=self.pc_xyz, #.to(vox_feature_i), # n*3
+                    cov3D_precomp = self.cov3D_precomp, #cov3D_precomp_i,  #n*6
                     voxel_features=vox_feature_i,  # n*C_v
                     white_background = self.white_background,
                     render_image_height=self.render_image_height,
                     render_image_width=self.render_image_width
                 )
                 if not self.use_sam and not self.use_sam_mask:
+                    rendered_semantic_map = F.interpolate(rendered_feature_map.unsqueeze(0), size=(sem_label_mask_batch_id[c_id].shape[1], sem_label_mask_batch_id[c_id].shape[0]), mode='bilinear', align_corners=True).squeeze(0)
                     rendered_semantic_map = rendered_semantic_map.permute(1,2,0)  # torch.Size([17, 450, 800]) --> torch.Size([450, 800, 17])
                     rendered_semantic_map = rendered_semantic_map.reshape(-1, self.num_classes-1)
+
                     # interpolate label mask(where there is label) 
                     sem_label_mask = sem_label_mask_batch_id[c_id]
-                    sem_label_mask = torch.nn.functional.interpolate(sem_label_mask.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     sem_label_mask = sem_label_mask.reshape(-1).bool()
+
                     # interpolate semantic label
                     gt_sem = gt_sem_batch_id[c_id]   
-                    gt_sem = torch.nn.functional.interpolate(gt_sem.unsqueeze(0).unsqueeze(0), size=(self.render_image_height, self.render_image_width), mode='nearest').squeeze(0).squeeze(0)
                     gt_sem = gt_sem.reshape(-1).long()
 
                     # check whether to use aux weight
@@ -182,23 +237,23 @@ class GausSplatingHead(nn.Module):
                         weight_b = self.dynamic_weight.to(gt_sem.device)[gt_sem.long()]
                         aux_weight = weight_t * weight_b
                     else:
-                        aux_weight = torch.ones_like(gt_sem)
+                        aux_weight = torch.ones_like(gt_sem).to(gt_sem)
                     # mask the aux weight by the label mask
                     aux_weight = torch.masked_select(aux_weight, sem_label_mask)
+
                     # mask the projected semantic feature maps
                     rendered_semantic_map_masked = torch.masked_select(rendered_semantic_map, sem_label_mask.unsqueeze(1))
                     rendered_semantic_map_masked = rendered_semantic_map_masked.view(-1, self.num_classes-1)
+
                     # mask the semantic label
                     gt_sem_masked = torch.masked_select(gt_sem, sem_label_mask)
-                    # mask the projected depth feature maps
-                    # semantic loss 
+
                     loss_sem_id = self.bce_contrastive_loss(rendered_semantic_map_masked, gt_sem_masked)
                     loss_sem_id = loss_sem_id * aux_weight
                     loss_sem_id = loss_sem_id.sum()
-                    num_label_ = len(sem_label_mask[sem_label_mask])
-                    # loss_sem_id = loss_sem_id / num_label
-                    loss_render_sem = loss_render_sem + loss_sem_id
-                    num_label = num_label + num_label_
+                    num_label = len(sem_label_mask[sem_label_mask])
+                    loss_sem_id = loss_sem_id / num_label
+                    
                 '''
                 if self.use_sam:
                     rendered_semantic_map = rendered_feature_map.permute(1,2,0)
@@ -255,10 +310,9 @@ class GausSplatingHead(nn.Module):
                     loss_sem_id = loss_sem_id + corr_loss.mean()
                     loss_render_id = loss_sem_id
                 '''
-
-            loss_render_sem_batch = loss_render_sem_batch + loss_render_sem / num_label
-
-        loss_sem = loss_render_sem_batch / voxel_feats.shape[0] * self.gaussian_sem_weight  
-        return {"render_sem_loss": loss_sem}
+                loss_render_sem = loss_render_sem + loss_sem_id
+            loss_render_sem_batch = loss_render_sem_batch + loss_render_sem #/ view_points[0].shape[0]
+        loss_sem = loss_render_sem_batch / batch_num * self.gaussian_sem_weight  
+        return {"render_sem_loss": loss_sem,}
     
     

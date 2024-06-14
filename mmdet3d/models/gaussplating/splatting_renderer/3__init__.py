@@ -18,7 +18,6 @@ def render_feature_map(
     viewpoint_camera:list,
     voxel_xyz:torch.tensor,
     opacity:torch.tensor,
-    # depth:torch.tensor,
     scaling:torch.tensor,
     rotations:torch.tensor,
     voxel_features:torch.tensor,

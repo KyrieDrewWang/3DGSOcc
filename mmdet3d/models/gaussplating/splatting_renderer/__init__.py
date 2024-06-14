@@ -7,7 +7,8 @@ def render_feature_map(
     viewpoint_camera:list,
     voxel_xyz:torch.tensor,
     opacity:torch.tensor,
-    cov3D_precomp:torch.tensor,
+    scaling:torch.tensor,
+    rotations:torch.tensor,
     voxel_features:torch.tensor,
     active_sh_degree=0,
     feature_dim=17,
@@ -53,8 +54,6 @@ def render_feature_map(
 
     means3D = voxel_xyz   # pc position
     means2D = screenspace_points # the shape is the same as means3D
-    opacity = opacity  # 不透明度 the shape is the same as means3D   
-
     # rendered_image, radii = rasterizer(
     #     means3D = means3D,
     #     means2D = means2D,
@@ -71,9 +70,9 @@ def render_feature_map(
         means3D = means3D,
         means2D = means2D,
         sh = torch.Tensor([]),  # None
-        scales = torch.Tensor([]),
-        rotations = torch.Tensor([]),
-        cov3Ds_precomp = cov3D_precomp,
+        scales = scaling,
+        rotations = rotations,
+        cov3Ds_precomp = torch.Tensor([]),
         raster_settings = raster_settings,
 )
     return rendered_image

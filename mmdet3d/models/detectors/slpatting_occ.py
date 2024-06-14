@@ -29,7 +29,6 @@ class SplattingOcc(BEVStereo4DOCC):
                  balance_cls_weight=True,
                  final_softplus=False,
                  gauss_head=None,
-                 alpha_init=1e-6,
                  **kwargs):
         super(SplattingOcc, self).__init__(use_predicter=False, **kwargs)
         self.out_dim = out_dim
@@ -39,10 +38,7 @@ class SplattingOcc(BEVStereo4DOCC):
         self.use_lss_depth_loss = use_lss_depth_loss
         self.balance_cls_weight = balance_cls_weight
         self.final_softplus = final_softplus
-        self.alpha_init = alpha_init
-        self.register_buffer('act_shift', torch.FloatTensor([np.log(1/(1-alpha_init) - 1)]))
-        print('--> Set density bias shift to', self.act_shift)
-
+        
         if self.balance_cls_weight:
             self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies[:17] + 0.001)).float()
             self.semantic_loss = nn.CrossEntropyLoss(
@@ -82,8 +78,8 @@ class SplattingOcc(BEVStereo4DOCC):
         if self.use_gs_loss:
             self.gaussplating_head = builder.build_head(gauss_head)
 
-    def density2opacity(self, x, shift, step_size=0.4):
-        return 1-torch.exp(-((x+shift)*step_size))
+    def density2opacity(self, x, step_size=0.4):
+        return 1-torch.exp(-x)
 
     def loss_3d(self,voxel_semantics,mask_camera,density_prob, semantic):
         voxel_semantics=voxel_semantics.long()
@@ -150,9 +146,6 @@ class SplattingOcc(BEVStereo4DOCC):
         density = density_prob[..., 0]
         semantic = self.semantic_mlp(voxel_feats)
         # opacity = self.density2opacity(density, self.act_shift)
-        opacity = density
-        # print("density:", str(density.max().item()), "-", str(density.min().item()), '\n')
-        # print("semantic:", str(semantic.max().item()), "-", str(semantic.min().item()), '\n')
         losses = dict()
         if self.use_3d_loss:      # 3D loss
             voxel_semantics = kwargs['voxel_semantics']
@@ -162,13 +155,12 @@ class SplattingOcc(BEVStereo4DOCC):
             losses.update(loss_occ)
         
         if self.use_gs_loss:
-            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], opacity)
+            loss_gaussian = self.gaussplating_head(semantic, kwargs['camera_info'], density)
             losses.update(loss_gaussian)
             
         if self.use_lss_depth_loss: # lss-depth loss (BEVStereo's feature)
             loss_depth = self.img_view_transformer.get_depth_loss(kwargs['gt_depth'], depth)
             losses['loss_lss_depth'] = loss_depth  
-        # print("loss:", losses)
         return losses
 
 

@@ -39,9 +39,9 @@ BATCH_JOB_ID=$5
 echo "$NODE_RANK,$NODES,$NPROC_PER_NODE,$MASTER_ADDR,$BATCH_JOB_ID"
 OUTPUT_LOG="train_rank${NODE_RANK}_${BATCH_JOB_ID}.log"
 
-WORK_DIR="socc_1_6"
+WORK_DIR="socc_1_8"
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
+torchrun \
      --nnodes="${NODES}" \
      --node_rank="${NODE_RANK}" \
      --nproc_per_node="${NPROC_PER_NODE}" \
