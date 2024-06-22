@@ -68,8 +68,8 @@ class GausSplatingHead(nn.Module):
         self.pc_xyz = pc_xyz.cuda().requires_grad_(False)
         # scales
         dist = torch.clamp_min(distCUDA2(self.get_presudo_xyz()), 0.0000001)
-        scales = torch.log(torch.sqrt(dist))[...,None].repeat(1, 3) 
-        self.scales = scales.cuda().requires_grad_(False)
+        scales = torch.log(torch.sqrt(dist) - 0.3)[...,None].repeat(1, 3) 
+        self.scales = scales.cuda().requires_grad_(True)
         # rots
         rots = torch.zeros((pc_xyz.shape[0], 4))
         rots[:, 0] = 1

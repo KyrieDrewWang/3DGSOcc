@@ -416,7 +416,7 @@ cov3D_precomp fixed
 scales=0.5
 36396 MiB
 
-=======v1.1
+=======v1.1 > 3.82
 render_img_shape=(900, 1600)
 aux_frames=[],
 density as opacity
@@ -424,7 +424,7 @@ cov3D_precomp fixed
 scales=0.5
 32912 MiB
 
-=======v1.2
+=======v1.2 > 3.56
 render_img_shape=(900, 1600)
 aux_frames=[],
 density as opacity
@@ -478,7 +478,7 @@ density_mlp end with Sigmoid instead of softplus
 
 
 
-=======v1.8 
+=======v1.8 > 9.33
 render_img_shape=(900, 1600)
 aux_frames=[],
 density as opacity
@@ -487,7 +487,7 @@ scales=0.2
 znear=0.01
 32914 MiB
 
-=======v1.9 > 5.86
+=======v1.9 > 6.26
 render_img_shape=(900, 1600)
 aux_frames=[],
 density as opacity
@@ -496,7 +496,7 @@ scales=0.4
 znear=0.01
 32914 MiB
 
-=======v1.10 
+=======v1.10 > 5.81
 render_img_shape=(900, 1600)
 aux_frames=[],
 density as opacity
@@ -505,7 +505,7 @@ scales=0.5
 znear=0.01
 32914 MiB
 
-=======v1.11 
+=======v1.11 > 6.52
 render_img_shape=(900, 1600)
 aux_frames=[],
 density as opacity
@@ -515,11 +515,108 @@ znear=0.01
 density_mlp end with Sigmoid instead of softplus
 32914 MiB
 
-=======v1.12
+=======v1.12 > 6.71
 render_img_shape=(900, 1600)
 aux_frames=[],
 density as opacity
 scale and rot fixed
 scales=0.4
-znear=0.01
+zfar=100
 32914 MiB
+
+=======v1.13 > 4.6
+render_img_shape=(900, 1600)
+aux_frames=[],
+density2opacity
+scale and rot fixed
+scales=0.4
+zfar=100
+32914 MiB
+
+
+
+=======v1.14 8.92
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.2
+znear=0.01
+zfar=100
+epoch 20
+32914 MiB
+
+=======v1.15 10.62
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.1
+znear=0.01
+zfar=100
+epoch 20
+32914 MiB
+
+=======v1.16 9.13
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.2
+znear=0.01
+zfar=100
+epoch 20
+density_mlp end with Sigmoid instead of softplus
+32914 MiB
+
+
+
+=======v1.17 > 9.69
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.1
+znear=0.01
+zfar=40
+32914 MiB
+
+=======v1.18 > 10.85
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.1
+znear=0.01
+zfar=40
+density_mlp end with Sigmoid instead of softplus
+
+=======v1.19
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.05
+znear=0.01
+zfar=40
+
+=======v1.20 > 10.48
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.05
+znear=0.01
+zfar=40
+density_mlp end with Sigmoid instead of softplus
+
+=======v1.21 8.88
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+rot fixed
+scale learned
+scales=0.05
+znear=0.01
+zfar=40
+density_mlp end with Sigmoid instead of softplus

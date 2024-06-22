@@ -61,7 +61,7 @@ class SplattingOcc(BEVStereo4DOCC):
                 nn.Linear(self.out_dim, self.out_dim*2),
                 nn.Softplus(),
                 nn.Linear(self.out_dim*2, 2),
-                nn.Softplus(),
+                nn.Sigmoid(),
             )
         else:
             self.density_mlp = nn.Sequential(
@@ -145,7 +145,6 @@ class SplattingOcc(BEVStereo4DOCC):
         density_prob = self.density_mlp(voxel_feats)
         density = density_prob[..., 0]
         semantic = self.semantic_mlp(voxel_feats)
-        # opacity = self.density2opacity(density, self.act_shift)
         losses = dict()
         if self.use_3d_loss:      # 3D loss
             voxel_semantics = kwargs['voxel_semantics']

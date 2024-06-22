@@ -3,13 +3,14 @@ _base_ = ['./bevstereo-occ.py']
 model = dict(
     type='RenderOcc',
     final_softplus=True,
+    test_threshold=8.5,
     nerf_head=dict(
         type='NerfHead',
         point_cloud_range= [-40,-40,-1, 40,40,5.4],
         voxel_size=0.4,
         scene_center=[0, 0, 2.2],
         radius=39,
-        use_depth_sup=True,
+        use_depth_sup=False,
     )
 )
 
@@ -28,7 +29,7 @@ data = dict(
         depth_gt_path=depth_gt_path,
         semantic_gt_path=semantic_gt_path,
         aux_frames=[],
-        max_ray_nums=5400,
+        max_ray_nums=8000,
     )
 )
 

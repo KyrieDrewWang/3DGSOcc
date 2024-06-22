@@ -9,7 +9,7 @@ from .builder import (BACKBONES, DETECTORS, FUSION_LAYERS, HEADS, LOSSES,
                       build_voxel_encoder)
 from .detectors import *  # noqa: F401,F403
 from .necks import *  # noqa: F401,F403
-# from .nerf import *
+from .nerf import *
 from .gaussplating import *
 __all__ = [
     'BACKBONES', 'NECKS', 'SHARED_HEADS', 'HEADS', 'LOSSES',

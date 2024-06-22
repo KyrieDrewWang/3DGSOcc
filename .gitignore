@@ -23,5 +23,5 @@ mmdet3d/models/gaussplating/submodules/diff-gaussian-rasterization/build/
 debug/
 render_*/
 debug/
-nerf_1/
+nerf_*/
 mmdet3d/.mim/
