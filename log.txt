@@ -620,3 +620,23 @@ scales=0.05
 znear=0.01
 zfar=40
 density_mlp end with Sigmoid instead of softplus
+
+=======v1.22 9.81
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+scales=0.1
+znear=0.01
+zfar=60
+density_mlp end with Sigmoid instead of softplus
+
+=======v1.23
+render_img_shape=(900, 1600)
+aux_frames=[],
+density as opacity
+scale and rot fixed
+density_mlp end with Sigmoid instead of softplus
+scales=0.1
+znear=0.01
+zfar=39
