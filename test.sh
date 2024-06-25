@@ -38,7 +38,7 @@ BATCH_JOB_ID=$5
 echo "$NODE_RANK,$NODES,$NPROC_PER_NODE,$MASTER_ADDR,$BATCH_JOB_ID"
 OUTPUT_LOG="train_rank${NODE_RANK}_${BATCH_JOB_ID}.log"
 
-PTH_DIR="socc_1_22/epoch_12.pth"
+PTH_DIR="socc_1_23/epoch_12_ema.pth"
 
 torchrun \
      --nnodes="${NODES}" \

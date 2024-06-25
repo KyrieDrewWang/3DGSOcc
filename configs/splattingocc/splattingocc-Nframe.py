@@ -8,7 +8,7 @@ model = dict(
     use_3d_loss=False,
     use_lss_depth_loss=True,
     use_gs_loss=True,
-    test_threshold=0.,
+    test_threshold=0.01,
     gauss_head=dict(
         type='GausSplatingHead',
         point_cloud_range= [-40, -40, -1, 40, 40, 5.4],
@@ -45,7 +45,7 @@ data = dict(
         semantic_gt_path=semantic_gt_path,
         aux_frames=[],
         znear=0.01, 
-        zfar=39, # 100.0
+        zfar=35, # 100.0
         render_img_shape=render_img_shape,
         use_sam=use_sam,
         use_sam_mask=use_sam_mask,
@@ -53,7 +53,7 @@ data = dict(
 )
 
 
-runner = dict(type='EpochBasedRunner', max_epochs=12)
+runner = dict(type='EpochBasedRunner', max_epochs=20)
 
 log_config = dict(
     interval=50,
