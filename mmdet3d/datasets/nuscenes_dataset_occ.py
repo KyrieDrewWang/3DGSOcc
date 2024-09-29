@@ -129,7 +129,7 @@ class NuScenesDatasetOccpancy(NuScenesDataset):
                 label_segs.append(torch.Tensor(label_seg))
                 time_ids[time_id].append(idx)
                 idx += 1
-        
+        import pdb; pdb.set_trace()
         T, N = len(self.aux_frames)+1, len(info['cams'].keys())
         sensor2egos = torch.stack(sensor2egos)
         ego2globals = torch.stack(ego2globals)

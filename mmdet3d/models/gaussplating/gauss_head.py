@@ -119,16 +119,18 @@ class GausSplatingHead(nn.Module):
             opacity_i = opacity_i.reshape(-1,1)
             vox_feature_i = vox_feature_i.reshape(-1, self.voxel_feature_dim)
             loss_render_sem = 0
+            opacity_mask = opacity_i > 0.1
+            opacity_mask = opacity_mask.squeeze(1)
             for c_id in range(view_points[0].shape[0]):
                 view_point = [p[c_id] for p in view_points]
                 rendered_semantic_map = render_feature_map(
                     feature_dim = self.voxel_feature_dim,
                     viewpoint_camera=view_point,
-                    voxel_xyz=self.pc_xyz, # n*3
-                    opacity=opacity_i, # n*1
-                    scaling=self.scale_act(self.scales), # n*3
-                    rotations=self.rot_act(self.rots), # n*4
-                    voxel_features=vox_feature_i,  # n*C_v
+                    voxel_xyz=self.pc_xyz[opacity_mask], # n*3
+                    opacity=opacity_i[opacity_mask], # n*1
+                    scaling=self.scale_act(self.scales)[opacity_mask], # n*3
+                    rotations=self.rot_act(self.rots)[opacity_mask], # n*4
+                    voxel_features=vox_feature_i[opacity_mask],  # n*C_v
                     white_background = self.white_background,
                     render_image_height=self.render_image_height,
                     render_image_width=self.render_image_width
