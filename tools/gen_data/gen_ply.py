@@ -5,6 +5,7 @@ import copy
 import mmcv
 import numpy as np
 from multiprocessing import Pool
+from plyfile import PlyData, PlyElement
 
 from nuscenes.utils.data_classes import LidarPointCloud
 from nuscenes.utils.geometry_utils import view_points
@@ -190,7 +191,7 @@ label_merged_map = {0: 0, 1: 0, 2: 7, 3: 7, 4: 7, 5: 0, 6: 7, 7: 0, 8: 0, 9: 1, 
 
 def worker(info):
     lidar_path = info['lidar_path']
-    
+    filename = lidar_path.split('/')[-1].split('.')[0]
     points = np.fromfile(lidar_path,
                         dtype=np.float32,
                         count=-1).reshape(-1, 5)[..., :4]
@@ -202,63 +203,46 @@ def worker(info):
         points_label_merge[points_label==key] = label_merged_map[key]
     points[:,3] = points_label_merge
 
-    lidar2ego_translation = info['lidar2ego_translation']
-    lidar2ego_rotation = info['lidar2ego_rotation']
-    ego2global_translation = info['ego2global_translation']
-    ego2global_rotation = info['ego2global_rotation']
-    for i, cam_key in enumerate(cam_keys):
-        file_name = os.path.split(info['cams'][cam_key]['data_path'])[-1]
-        if os.path.exists(os.path.join(save_folder, f'{file_name}.bin')):
-            return
-        sensor2ego_translation = info['cams'][cam_key]['sensor2ego_translation']
-        sensor2ego_rotation = info['cams'][cam_key]['sensor2ego_rotation']
-        cam_ego2global_translation = info['cams'][cam_key]['ego2global_translation']
-        cam_ego2global_rotation = info['cams'][cam_key]['ego2global_rotation']
-        cam_intrinsic = info['cams'][cam_key]['cam_intrinsic']
-        img = mmcv.imread(os.path.join(info['cams'][cam_key]['data_path']))
-        pts_img, depth, label = map_pointcloud_to_image(
-            points.copy(), img, 
-            copy.deepcopy(lidar2ego_translation), 
-            copy.deepcopy(lidar2ego_rotation), 
-            copy.deepcopy(ego2global_translation),
-            copy.deepcopy(ego2global_rotation),
-            copy.deepcopy(sensor2ego_translation), 
-            copy.deepcopy(sensor2ego_rotation), 
-            copy.deepcopy(cam_ego2global_translation), 
-            copy.deepcopy(cam_ego2global_rotation),
-            copy.deepcopy(cam_intrinsic))
-        
-        np.concatenate([pts_img[:2, :].T, label[:,None]], axis=1).astype(np.float32).flatten().tofile(os.path.join(save_folder, f'{file_name}.bin'))
-        if visual:
-            mmcv.mkdir_or_exist(os.path.join('./data', 'seg_gt_visual'))
-            png_name = os.path.join('./data', 'seg_gt_visual', file_name)
-            img_drawed = draw_points(img, pts_img[:2,:].astype(np.int), label)
-            cv2.imwrite(png_name, img_drawed)
+    data = points
+    # Convert the numpy array to a list of tuples
+    vertex = [tuple(point) for point in data]
+
+    # Define the PLY elements
+    vertex_element = PlyElement.describe(np.array(vertex, dtype=[('x', 'f4'), ('y', 'f4'), ('z', 'f4'), ('a', 'f4')]), 'vertex')
+
+    # Create a PlyData object
+    ply_data = PlyData([vertex_element])
+
+    # Save the PLY file
+    ply_file_path = os.path.join(save_folder, filename + '.ply')
+    ply_data.write(ply_file_path)
     return
 
 if __name__ == '__main__':
     
-    save_folder = os.path.join('./data/nuscenes/', 'seg_gt_lidarseg') 
+    save_folder = os.path.join('./data/nuscenes/', 'ply') 
     info_path_train = './data/nuscenes/bevdetv2-nuscenes_infos_train.pkl'
     info_path_val = './data/nuscenes/bevdetv2-nuscenes_infos_val.pkl'
     
     print('Save to %s'%save_folder)
     mmcv.mkdir_or_exist(save_folder)
     
-    infos = mmcv.load(info_path_train)['infos']
-    p = Pool(32)
-    for d in infos:
-        # print(d)
-        p.apply_async(worker, (d,))
-    p.close()
-    p.join()
-    print(info_path_train, len(infos))
+    # infos = mmcv.load(info_path_train)['infos']
+    # p = Pool(32)
+    # for d in infos:
+    #     # print(d)
+    #     worker(d)
+    #     # p.apply_async(worker, (d,))
+    # p.close()
+    # p.join()
+    # print(info_path_train, len(infos))
 
     infos = mmcv.load(info_path_val)['infos']
 
     p = Pool(32)
     for d in infos:
-        p.apply_async(worker, (d, ))
+        worker(d)
+        # p.apply_async(worker, (d, ))
     p.close()
     p.join()
     print(info_path_val, len(infos))
