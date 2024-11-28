@@ -1,4 +1,4 @@
-# SplattingOcc
+# SplattingOcc: Supervising 3D Occupancy Models with 2D Labels based on Gaussian Splatting.
 
 ## INTRODUCTION
 
